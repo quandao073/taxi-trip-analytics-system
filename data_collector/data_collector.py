@@ -1,0 +1,133 @@
+import requests
+import csv
+import os
+import json
+import pathlib
+from zoneinfo import ZoneInfo
+from datetime import datetime
+
+API_KEY = os.getenv("API_KEY", "")
+BASE_URL = "https://api.waqi.info/feed/geo:{lat};{lon}/?token=" + API_KEY
+
+CITIES = [
+    {
+        "name": "ha-noi",
+        "station_locations": [
+            (21.0811211, 105.8180306),
+            (21.01525, 105.80013),
+            (21.0491, 105.8831),
+            (21.0215063, 105.8188748),
+            (21.035584, 105.852771),
+            (21.04975, 105.74187),
+            (21.148273, 105.913306),
+            (21.002383, 105.718038)
+        ]
+    },
+    {
+        "name": "ho-chi-minh",
+        "station_locations": [
+            (10.65961, 106.727916)
+        ]
+    },
+    {
+        "name": "hue",
+        "station_locations": [
+            (16.46226, 107.596351)
+        ]
+    },
+    {
+        "name": "da-nang",
+        "station_locations": [
+            (16.043252, 108.206826),
+            (16.074, 108.217)
+        ]
+    },
+    {
+        "name": "can-tho",
+        "station_locations": [
+            (10.026977, 105.768249)
+        ]
+    },
+    {
+        "name": "vung-tau",
+        "station_locations": [
+            (10.589853, 107.131743)
+        ]
+    },
+    {
+        "name": "cao-bang",
+        "station_locations": [
+            (22.67953, 106.215361),
+            (22.6782, 106.245)
+        ]
+    },
+    {
+        "name": "nha-trang",
+        "station_locations": [
+            (12.284358, 109.192524)
+        ]
+    }
+]
+
+def get_vietnam_time():
+    return datetime.now(ZoneInfo("Asia/Bangkok")).strftime("%Y-%m-%d %H:%M:%S")
+
+def get_air_quality(lat, lon):
+    url = BASE_URL.format(lat=lat, lon=lon)
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("status") == "ok":
+                return {
+                    "timestamp": data["data"]["time"]["s"],
+                    "station_id": data["data"]["idx"],
+                    "city_name": data["data"]["city"]["name"],
+                    "url": data["data"]["city"]["url"],
+                    "latitude": lat,
+                    "longitude": lon,
+                    "aqi": data["data"]["aqi"],
+                    "co": data["data"].get("iaqi", {}).get("co", {}).get("v", "N/A"),
+                    "temperature": data["data"].get("iaqi", {}).get("t", {}).get("v", "N/A"),
+                    "wind": data["data"].get("iaqi", {}).get("w", {}).get("v", "N/A"),
+                    "atmospheric_pressure": data["data"].get("iaqi", {}).get("p", {}).get("v", "N/A"),
+                    "humidity": data["data"].get("iaqi", {}).get("h", {}).get("v", "N/A"),
+                    "pm25": data["data"].get("iaqi", {}).get("pm25", {}).get("v", "N/A"),
+                    "pm10": data["data"].get("iaqi", {}).get("pm10", {}).get("v", "N/A"),
+                    "o3": data["data"].get("iaqi", {}).get("o3", {}).get("v", "N/A"),
+                    "no2": data["data"].get("iaqi", {}).get("no2", {}).get("v", "N/A")
+                }
+        return {"timestamp": get_vietnam_time(), "error": "No data", "latitude": lat, "longitude": lon}
+    except Exception as e:
+        return {"timestamp": get_vietnam_time(), "error": str(e), "latitude": lat, "longitude": lon}
+
+# def save_to_csv(data, city_name):
+#     if not data:
+#         return
+
+#     now = datetime.now()
+#     result_dir = pathlib.Path(f"/data/{city_name}")
+#     result_dir.mkdir(parents=True, exist_ok=True)
+#     filename = result_dir / f"air_quality_{city_name}_{now.month:02d}_{now.year}.csv"
+
+#     file_exists = os.path.exists(filename)
+#     with open(filename, mode="a", newline="", encoding="utf-8") as file:
+#         fieldnames = list(data[0].keys())
+#         writer = csv.DictWriter(file, fieldnames=fieldnames)
+#         if not file_exists:
+#             writer.writeheader()
+#         writer.writerows(data)
+
+def crawl_all_cities():
+    all_results = {}
+    for city in CITIES:
+        city_name = city["name"]
+        city_results = [get_air_quality(lat, lon) for lat, lon in city["station_locations"]]
+        # save_to_csv(city_results, city_name)
+        all_results[city_name] = city_results
+    return all_results
+
+if __name__ == "__main__":
+    print(f"Starting Data Collector at {get_vietnam_time()}")
+    results = crawl_all_cities()
+    print(json.dumps(results, indent=2, ensure_ascii=False))

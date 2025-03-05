@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  collector:
+    build: ./data_collector
+    container_name: air-quality-collector
+    restart: always
+    networks:
+      - air-quality-analytics-network
+
+networks:
+  air-quality-analytics-network:
+    driver: bridge
