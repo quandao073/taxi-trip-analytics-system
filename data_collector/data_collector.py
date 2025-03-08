@@ -1,17 +1,25 @@
 import requests
-import csv
 import os
 import json
-import pathlib
+from kafka import KafkaProducer
 from zoneinfo import ZoneInfo
 from datetime import datetime
 
 API_KEY = os.getenv("API_KEY", "")
 BASE_URL = "https://api.waqi.info/feed/geo:{lat};{lon}/?token=" + API_KEY
 
+KAFKA_BROKER = os.getenv("KAFKA_BROKER", "localhost:9092")
+KAFKA_TOPIC = "air_quality"
+
+producer = KafkaProducer(
+    bootstrap_servers=KAFKA_BROKER,
+    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+    key_serializer=lambda k: k.encode('utf-8') if k else None
+)
+
 CITIES = [
     {
-        "name": "ha-noi",
+        "name": "Hà Nội",
         "station_locations": [
             (21.0811211, 105.8180306),
             (21.01525, 105.80013),
@@ -24,45 +32,45 @@ CITIES = [
         ]
     },
     {
-        "name": "ho-chi-minh",
+        "name": "Hồ Chí Minh",
         "station_locations": [
             (10.65961, 106.727916)
         ]
     },
     {
-        "name": "hue",
+        "name": "Huế",
         "station_locations": [
             (16.46226, 107.596351)
         ]
     },
     {
-        "name": "da-nang",
+        "name": "Đà Nẵng",
         "station_locations": [
             (16.043252, 108.206826),
             (16.074, 108.217)
         ]
     },
     {
-        "name": "can-tho",
+        "name": "Cần Thơ",
         "station_locations": [
             (10.026977, 105.768249)
         ]
     },
     {
-        "name": "vung-tau",
+        "name": "Vũng Tàu",
         "station_locations": [
             (10.589853, 107.131743)
         ]
     },
     {
-        "name": "cao-bang",
+        "name": "Cao Bằng",
         "station_locations": [
             (22.67953, 106.215361),
             (22.6782, 106.245)
         ]
     },
     {
-        "name": "nha-trang",
+        "name": "Nha Trang",
         "station_locations": [
             (12.284358, 109.192524)
         ]
@@ -72,7 +80,7 @@ CITIES = [
 def get_vietnam_time():
     return datetime.now(ZoneInfo("Asia/Bangkok")).strftime("%Y-%m-%d %H:%M:%S")
 
-def get_air_quality(lat, lon):
+def get_air_quality(lat, lon, city_name):
     url = BASE_URL.format(lat=lat, lon=lon)
     try:
         response = requests.get(url, timeout=10)
@@ -82,52 +90,35 @@ def get_air_quality(lat, lon):
                 return {
                     "timestamp": data["data"]["time"]["s"],
                     "station_id": data["data"]["idx"],
-                    "city_name": data["data"]["city"]["name"],
+                    "station_name": data["data"]["city"]["name"],
+                    "city_name": city_name,
                     "url": data["data"]["city"]["url"],
                     "latitude": lat,
                     "longitude": lon,
-                    "aqi": data["data"]["aqi"],
-                    "co": data["data"].get("iaqi", {}).get("co", {}).get("v", "N/A"),
-                    "temperature": data["data"].get("iaqi", {}).get("t", {}).get("v", "N/A"),
-                    "wind": data["data"].get("iaqi", {}).get("w", {}).get("v", "N/A"),
-                    "atmospheric_pressure": data["data"].get("iaqi", {}).get("p", {}).get("v", "N/A"),
-                    "humidity": data["data"].get("iaqi", {}).get("h", {}).get("v", "N/A"),
-                    "pm25": data["data"].get("iaqi", {}).get("pm25", {}).get("v", "N/A"),
-                    "pm10": data["data"].get("iaqi", {}).get("pm10", {}).get("v", "N/A"),
-                    "o3": data["data"].get("iaqi", {}).get("o3", {}).get("v", "N/A"),
-                    "no2": data["data"].get("iaqi", {}).get("no2", {}).get("v", "N/A")
+                    "aqi": data["data"].get("aqi"),
+                    "co": data["data"].get("iaqi", {}).get("co", {}).get("v"),
+                    "temperature": data["data"].get("iaqi", {}).get("t", {}).get("v"),
+                    "wind": data["data"].get("iaqi", {}).get("w", {}).get("v"),
+                    "atmospheric_pressure": data["data"].get("iaqi", {}).get("p", {}).get("v"),
+                    "humidity": data["data"].get("iaqi", {}).get("h", {}).get("v"),
+                    "pm25": data["data"].get("iaqi", {}).get("pm25", {}).get("v"),
+                    "pm10": data["data"].get("iaqi", {}).get("pm10", {}).get("v"),
+                    "o3": data["data"].get("iaqi", {}).get("o3", {}).get("v"),
+                    "no2": data["data"].get("iaqi", {}).get("no2", {}).get("v")
                 }
         return {"timestamp": get_vietnam_time(), "error": "No data", "latitude": lat, "longitude": lon}
     except Exception as e:
         return {"timestamp": get_vietnam_time(), "error": str(e), "latitude": lat, "longitude": lon}
 
-# def save_to_csv(data, city_name):
-#     if not data:
-#         return
-
-#     now = datetime.now()
-#     result_dir = pathlib.Path(f"/data/{city_name}")
-#     result_dir.mkdir(parents=True, exist_ok=True)
-#     filename = result_dir / f"air_quality_{city_name}_{now.month:02d}_{now.year}.csv"
-
-#     file_exists = os.path.exists(filename)
-#     with open(filename, mode="a", newline="", encoding="utf-8") as file:
-#         fieldnames = list(data[0].keys())
-#         writer = csv.DictWriter(file, fieldnames=fieldnames)
-#         if not file_exists:
-#             writer.writeheader()
-#         writer.writerows(data)
-
 def crawl_all_cities():
-    all_results = {}
     for city in CITIES:
         city_name = city["name"]
-        city_results = [get_air_quality(lat, lon) for lat, lon in city["station_locations"]]
-        # save_to_csv(city_results, city_name)
-        all_results[city_name] = city_results
-    return all_results
+        for lat, lon in city["station_locations"]:
+            air_quality_data = get_air_quality(lat, lon, city_name)
+            print(f"Sending data for {city_name}: {air_quality_data}")
+            partition_key = city_name
+            producer.send(KAFKA_TOPIC, key=partition_key, value=air_quality_data)
 
 if __name__ == "__main__":
     print(f"Starting Data Collector at {get_vietnam_time()}")
-    results = crawl_all_cities()
-    print(json.dumps(results, indent=2, ensure_ascii=False))
+    crawl_all_cities()
