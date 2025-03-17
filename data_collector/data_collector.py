@@ -8,7 +8,7 @@ from datetime import datetime
 API_KEY = os.getenv("API_KEY", "")
 BASE_URL = "https://api.waqi.info/feed/geo:{lat};{lon}/?token=" + API_KEY
 
-KAFKA_BROKER = os.getenv("KAFKA_BROKER", "localhost:9092")
+KAFKA_BROKER = os.getenv("KAFKA_BROKER", "kafka:29092")
 KAFKA_TOPIC = "air_quality"
 
 producer = KafkaProducer(
