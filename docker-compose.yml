@@ -30,8 +30,12 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - KAFKA_CLUSTERS_0_NAME=local
-      - KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS=kafka:29092
+      KAFKA_CLUSTERS_0_NAME: "local-cluster"
+      KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: "kafka:29092"
+      KAFKA_CLUSTERS_0_ZOOKEEPER: "zookeeper:2181"
+      KAFKA_CLUSTERS_0_SCHEMA_REGISTRY: ""
+      KAFKA_CLUSTERS_0_SECURITY_PROTOCOL: "PLAINTEXT"
+      KAFKA_CLUSTERS_0_SASL_MECHANISM: ""
     depends_on:
       - kafka
     networks:
