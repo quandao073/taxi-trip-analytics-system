@@ -1,22 +1,58 @@
 # Hướng Dẫn Cài Đặt Cụm Kubernetes (K8s)
 
-## STEP 0: Chuẩn Bị Hệ Thống
+## 1. Chuẩn Bị Hệ Thống
 
-### 1. Các thông số của từng node
+### Các thông số của từng node
 
-| Hostname      | OS            | IP              | RAM (tối thiểu) | CPU (tối thiểu) |
+| Hostname      | OS            | IP              | RAM  | CPU |
 |--------------|--------------|----------------|----------------|----------------|
-| k8s-master-node-1 | Ubuntu 22.04 | 192.168.1.111  | 3G             | 2              |
-| k8s-worker-node-1 | Ubuntu 22.04 | 192.168.1.112  | 3G             | 2              |
-| k8s-worker-node-2 | Ubuntu 22.04 | 192.168.1.113  | 3G             | 2              |
+| k8s-master-node | Ubuntu 22.04 | 192.168.164.131  | 8 GB             | 2              |
+| k8s-worker-node-1 | Ubuntu 22.04 | 192.168.164.132  | 6 GB             | 2              |
+| k8s-worker-node-2 | Ubuntu 22.04 | 192.168.164.133  | 6 GB             | 2              |
 
-
-
-### 2. Cấu hình mạng
-Cấu hình các tham số cần thiết để đảm bảo hoạt động của Kubernetes:
+## 2. Thực hiện các bước sau trên cả 3 server
+Thêm hosts
+```sh
+nano /etc/hosts/
+```
+Nội dung cấu hình
+```sh
+192.168.164.131 k8s-master-node
+192.168.164.132 k8s-worker-node-1
+192.168.164.133 k8s-worker-node-2
+```
+Cập nhật và nâng cấp hệ thống
+```sh
+sudo apt update -y && sudo apt upgrade -y
+```
+Tạo user *anhquan* và chuyển sang user *anhquan*
+```sh
+adduser anhquan
+su anhquan
+cd /home/anhquan
+```
+Tắt swap
+```sh
+sudo swapoff -a
+sudo sed -i '/swap.img/s/^/#/' /etc/fstab
+```
+Cấu hình module kernel
 
 ```sh
-cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+nano /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+```
+Tải module kernel
+
+```sh
+sudo modprobe overlay
+sudo modprobe br_netfilter
+```
+
+Cấu hình hệ thống mạng
+```sh
+cat <<EOF | sudo tee /etc/sysctl.d/k8kubernetes.conf
 net.bridge.bridge-nf-call-iptables  = 1
 net.bridge.bridge-nf-call-ip6tables = 1
 net.ipv4.ip_forward                 = 1
@@ -24,147 +60,55 @@ EOF
 ```
 
 Áp dụng thay đổi mà không cần khởi động lại:
-
 ```sh
 sudo sysctl --system
 ```
-
-### 3. Tắt Swap
-Kubernetes yêu cầu vô hiệu hóa swap:
-
+Cài đặt các gói cần thiết và thêm kho Docker
 ```sh
-sudo swapoff -a
-(crontab -l 2>/dev/null; echo "@reboot /sbin/swapoff -a") | crontab - || true
+sudo apt install -y curl gnupg2 software-properties-common apt-transport-https ca-certificates
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmour -o /etc/apt/trusted.gpg.d/docker.gpg
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+```
+Cài đặt containerd
+```sh
+sudo apt update -y
+sudo apt install -y containerd.io
 ```
 
----
-
-## STEP 1: Cài Đặt CRI-O (Container Runtime Interface - Open)
-
-### 1. Nạp các module cần thiết
+Cấu hình containerd
 ```sh
-cat <<EOF | sudo tee /etc/modules-load.d/crio.conf
-overlay
-br_netfilter
-EOF
+containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
+sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+```
+Khởi động containerd
+
+```sh
+sudo systemctl restart containerd
+sudo systemctl enable containerd
 ```
 
-Nạp các module vào kernel:
+Thêm kho lưu trữ Kubernetes
 ```sh
-sudo modprobe overlay
-sudo modprobe br_netfilter
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 ```
-
-### 2. Thêm nguồn cài đặt CRI-O
+Cài đặt các gói Kubernetes
 ```sh
-export OS="xUbuntu_22.04"
-export VERSION="1.28"
-
-cat <<EOF | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /
-EOF
-
-cat <<EOF | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
-deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /
-EOF
-```
-
-### 3. Cài đặt khóa GPG và cập nhật hệ thống
-```sh
-curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/Release.key | sudo apt-key --keyring /etc/apt/trusted.gpg.d/libcontainers.gpg add -
-
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo apt-key --keyring /etc/apt/trusted.gpg.d/libcontainers.gpg add -
-```
-
-### 4. Cài đặt CRI-O
-```sh
-sudo apt-get update
-sudo apt-get install cri-o cri-o-runc cri-tools -y
-```
-
-### 5. Kích hoạt dịch vụ CRI-O
-```sh
-sudo systemctl daemon-reload
-sudo systemctl enable crio --now
-```
-
----
-
-## STEP 2: Cài Đặt Kubernetes
-
-### 1. Cài đặt các gói cần thiết
-```sh
-sudo apt-get update
-sudo apt-get install -y apt-transport-https ca-certificates curl gpg
-```
-
-### 2. Thêm khóa GPG và nguồn Kubernetes
-```sh
-sudo mkdir -p -m 755 /etc/apt/keyrings
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-
-echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
-```
-
-### 3. Cài đặt Kubeadm, Kubelet và Kubectl
-```sh
-sudo apt-get update
-sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt update -y
+sudo apt install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
----
-
-## STEP 3: Khởi Tạo Cụm K8s Trên Node Master
-
+## 3. Triển khai mô hình gồm 1 master và 2 worker
+### Thực hiện trên k8s-master-node
 ```sh
-IPADDR="192.168.1.111"
-NODENAME=$(hostname -s)
-POD_CIDR="172.17.0.0/16"
-
-kubeadm init --apiserver-advertise-address=$IPADDR  --apiserver-cert-extra-sans=$IPADDR  --pod-network-cidr=$POD_CIDR --node-name $NODENAME --ignore-preflight-errors Swap
-```
-
-### 1. Cấu hình quyền truy cập K8s
-```sh
+sudo kubeadm init
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
-```
-
-### 2. Kiểm tra trạng thái
-```sh
-kubectl get po -n kube-system
-kubectl get nodes
-```
-
----
-
-## STEP 4: Cài Đặt Network Plugin
-
-Cài đặt Calico làm plugin mạng cho Kubernetes:
-```sh
 kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
 ```
-
----
-
-## STEP 5: Kết Nối Các Worker Node
-
-### 1. Tạo token để worker node tham gia cụm
+### Thực hiện trên k8s-worker-node-1 và k8s-worker-node-2
 ```sh
-kubeadm token create --print-join-command
+sudo kubeadm join 192.168.1.111:6443 --token your_token --discovery-token-ca-cert-hash your_sha
 ```
-
-### 2. Tham gia worker node vào cụm
-Chạy lệnh sau trên mỗi worker node:
-```sh
-kubeadm join 192.168.1.111:6443 --token <TOKEN> \
-    --discovery-token-ca-cert-hash sha256:<HASH>
-```
-
-### 3. Gán role worker cho node
-```sh
-kubectl label node <worker-node-name> node-role.kubernetes.io/worker=worker
-```
-
