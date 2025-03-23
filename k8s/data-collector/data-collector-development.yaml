@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: air-quality-collector
+  namespace: air-quality
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: air-quality-collector
+  template:
+    metadata:
+      labels:
+        app: air-quality-collector
+    spec:
+      containers:
+        - name: collector
+          image: quandao073/air-quality-data-collector:v1.1
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: data-collector-secret
+                  key: API_KEY
+            - name: KAFKA_BROKER
+              value: kafka.air-quality.svc.cluster.local:9092
+      restartPolicy: Always
