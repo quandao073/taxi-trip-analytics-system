@@ -1,6 +1,7 @@
 import requests
 import os
 import json
+import time
 from kafka import KafkaProducer
 from zoneinfo import ZoneInfo
 from datetime import datetime
@@ -118,6 +119,7 @@ def crawl_all_cities():
             print(f"Sending data for {city_name}: {air_quality_data}")
             partition_key = city_name
             producer.send(KAFKA_TOPIC, key=partition_key, value=air_quality_data)
+            time.sleep(1)
 
 if __name__ == "__main__":
     print(f"Starting Data Collector at {get_vietnam_time()}")
