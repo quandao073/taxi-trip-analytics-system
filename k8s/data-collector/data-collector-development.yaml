@@ -17,6 +17,8 @@ spec:
         - name: collector
           image: quandao073/air-quality-data-collector:v1.1
           env:
+            - name: INTERVAL_SECONDS
+              value: "60"
             - name: API_KEY
               valueFrom:
                 secretKeyRef:

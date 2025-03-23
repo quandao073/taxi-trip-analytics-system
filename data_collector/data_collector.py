@@ -11,6 +11,7 @@ BASE_URL = "https://api.waqi.info/feed/geo:{lat};{lon}/?token=" + API_KEY
 
 KAFKA_BROKER = os.getenv("KAFKA_BROKER", "kafka:29092")
 KAFKA_TOPIC = "air_quality"
+INTERVAL = int(os.getenv("INTERVAL_SECONDS", "60"))
 
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BROKER,
@@ -122,5 +123,8 @@ def crawl_all_cities():
             time.sleep(1)
 
 if __name__ == "__main__":
-    print(f"Starting Data Collector at {get_vietnam_time()}")
-    crawl_all_cities()
+    while True:
+        print(f"[{get_vietnam_time()}] Starting data collector...")
+        crawl_all_cities()
+        print(f"[{get_vietnam_time()}] Sleeping for {INTERVAL} seconds...\n")
+        time.sleep(INTERVAL)
