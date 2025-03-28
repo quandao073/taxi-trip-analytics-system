@@ -9,9 +9,9 @@ from datetime import datetime
 API_KEY = os.getenv("API_KEY", "")
 BASE_URL = "https://api.waqi.info/feed/geo:{lat};{lon}/?token=" + API_KEY
 
-KAFKA_BROKER = os.getenv("KAFKA_BROKER", "kafka:29092")
+KAFKA_BROKER = os.getenv("KAFKA_BROKER", "kafka:9092")
 KAFKA_TOPIC = "air_quality"
-INTERVAL = int(os.getenv("INTERVAL_SECONDS", "60"))
+INTERVAL = int(os.getenv("INTERVAL_SECONDS", "3600"))
 
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BROKER,
@@ -118,7 +118,7 @@ def crawl_all_cities():
         for lat, lon in city["station_locations"]:
             air_quality_data = get_air_quality(lat, lon, city_name)
             print(f"Sending data for {city_name}: {air_quality_data}")
-            partition_key = city_name
+            partition_key = f"station-{air_quality_data['station_id']}"
             producer.send(KAFKA_TOPIC, key=partition_key, value=air_quality_data)
             time.sleep(1)
 

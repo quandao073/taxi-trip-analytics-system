@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: collector
-          image: quandao073/air-quality-data-collector:v1.1
+          image: quandao073/air-quality-data-collector:v1.0
           env:
             - name: INTERVAL_SECONDS
               value: "60"
