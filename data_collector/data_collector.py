@@ -15,7 +15,7 @@ INTERVAL = int(os.getenv("INTERVAL_SECONDS", "3600"))
 
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BROKER,
-    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+    value_serializer=lambda v: json.dumps(v, ensure_ascii=False).encode('utf-8'),
     key_serializer=lambda k: k.encode('utf-8') if k else None
 )
 

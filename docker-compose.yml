@@ -21,6 +21,7 @@ services:
       KAFKA_CFG_LISTENERS: PLAINTEXT://:9092
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
     networks:
       - air-quality-network
     depends_on:
@@ -43,12 +44,47 @@ services:
   collector:
     build: ./data_collector
     container_name: air-quality-collector
-    environment:
-      - KAFKA_BROKER=kafka:9092
-    networks:
-      - air-quality-network
+    restart: always
+    env_file:
+      - ./data_collector/.env
     depends_on:
       - kafka
+    networks:
+      - air-quality-network
+
+  spark:
+    image: docker.io/bitnami/spark:3.5
+    container_name: spark
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+    volumes:
+      - ./spark/src:/app
+      - ./spark/jars:/opt/bitnami/spark/.ivy2/jars
+    ports:
+      - '8081:8080'
+    networks:
+      - air-quality-network
+
+  spark-worker:
+    image: docker.io/bitnami/spark:3.5
+    container_name: spark-worker-1
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+    networks:
+      - air-quality-network
 
 networks:
   air-quality-network:
