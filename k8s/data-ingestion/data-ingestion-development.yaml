@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-ingestion
+  namespace: nyc-taxi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: data-ingestion
+  template:
+    metadata:
+      labels:
+        app: data-ingestion
+    spec:
+      containers:
+        - name: collector
+          image: quandao073/nyc-taxi-trips-ingestion:v1.0
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: kafka.nyc-taxi.svc.cluster.local:9092
+            - name: KAFKA_TOPIC
+              value: yellow_trip_data
+            - name: SPEED
+              value: "2"
+      restartPolicy: Always

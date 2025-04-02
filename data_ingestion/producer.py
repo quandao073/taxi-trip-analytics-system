@@ -5,12 +5,13 @@ import os
 from kafka import KafkaProducer
 
 KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
-KAFKA_TOPIC = os.environ.get("KAFKA_TOPIC", "yellow_tripdata")
+KAFKA_TOPIC = os.environ.get("KAFKA_TOPIC", "yellow_trip_data")
 SPEED = float(os.environ.get("SPEED", 2.0))
 
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
-    value_serializer=lambda x: json.dumps(x, default=str).encode("utf-8")
+    value_serializer=lambda x: json.dumps(x, default=str).encode("utf-8"),
+    key_serializer=lambda k: k.encode('utf-8') if k else None
 )
 
 data_dir = "./data"
@@ -32,6 +33,7 @@ for file_name in parquet_files:
             time.sleep(min(delay / SPEED, 10))
 
         data["event_time"] = current_time.isoformat()
-        producer.send(KAFKA_TOPIC, value=data)
+        key = str(data.get("PULocationID", "default"))
+        producer.send(KAFKA_TOPIC, key=key, value=data)
 
         prev_time = current_time
