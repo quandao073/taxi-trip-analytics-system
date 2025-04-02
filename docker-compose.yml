@@ -7,7 +7,7 @@ services:
     environment:
       ALLOW_ANONYMOUS_LOGIN: 'yes'
     networks:
-      - air-quality-network
+      - taxi-trip-records-network
 
   kafka:
     image: bitnami/kafka:3.6
@@ -23,7 +23,7 @@ services:
       KAFKA_CFG_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
     networks:
-      - air-quality-network
+      - taxi-trip-records-network
     depends_on:
       - zookeeper
 
@@ -37,20 +37,33 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAP_SERVERS: kafka:9092
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
     networks:
-      - air-quality-network
+      - taxi-trip-records-network
     depends_on:
       - kafka
 
-  collector:
-    build: ./data_collector
-    container_name: air-quality-collector
-    restart: always
-    env_file:
-      - ./data_collector/.env
-    depends_on:
-      - kafka
-    networks:
-      - air-quality-network
+  # collector:
+  #   build: ./data_collector
+  #   container_name: air-quality-collector
+  #   restart: always
+  #   env_file:
+  #     - ./data_collector/.env
+  #   depends_on:
+  #     - kafka
+  #   networks:
+  #     - taxi-trip-records-network
+  data_sender:
+      build: ./data_sender
+      container_name: data_sender
+      environment:
+        - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+        - KAFKA_TOPIC=yellow_trip_data
+        - SPEED=10.0
+      volumes:
+        - ./data_sender:/app
+      depends_on:
+        - kafka
+      networks:
+        - taxi-trip-records-network
 
   spark:
     image: docker.io/bitnami/spark:3.5
@@ -62,13 +75,16 @@ services:
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
+      - PYTHONIOENCODING=utf-8
     volumes:
       - ./spark/src:/app
       - ./spark/jars:/opt/bitnami/spark/.ivy2/jars
     ports:
       - '8081:8080'
     networks:
-      - air-quality-network
+      - taxi-trip-records-network
 
   spark-worker:
     image: docker.io/bitnami/spark:3.5
@@ -84,8 +100,8 @@ services:
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
     networks:
-      - air-quality-network
+      - taxi-trip-records-network
 
 networks:
-  air-quality-network:
+  taxi-trip-records-network:
     driver: bridge
