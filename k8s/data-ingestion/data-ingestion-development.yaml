@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: collector
-          image: quandao073/nyc-taxi-trips-ingestion:v1.0
+          image: quandao073/nyc-taxi-trips-ingestion:v1.1
           env:
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: kafka.nyc-taxi.svc.cluster.local:9092
@@ -23,4 +23,12 @@ spec:
               value: yellow_trip_data
             - name: SPEED
               value: "2"
+          volumeMounts:
+            - name: parquet-data
+              mountPath: /app/data
+              readOnly: true
+      volumes:
+        - name: parquet-data
+          persistentVolumeClaim:
+            claimName: data-source-pvc
       restartPolicy: Always

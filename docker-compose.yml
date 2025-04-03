@@ -41,16 +41,6 @@ services:
     depends_on:
       - kafka
 
-  # collector:
-  #   build: ./data_collector
-  #   container_name: air-quality-collector
-  #   restart: always
-  #   env_file:
-  #     - ./data_collector/.env
-  #   depends_on:
-  #     - kafka
-  #   networks:
-  #     - taxi-trip-records-network
   data_sender:
       build: ./data_sender
       container_name: data_sender

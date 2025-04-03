@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: data-source-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadOnlyMany
+  nfs:
+    server: 192.168.164.136
+    path: /data/data_ingestion/data_source
+  persistentVolumeReclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-source-pvc
+  namespace: nyc-taxi
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 10Gi
