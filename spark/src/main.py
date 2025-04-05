@@ -111,14 +111,14 @@ def main():
     query_valid = write_to_hdfs(
         df_valid,
         "/tmp/spark-checkpoint/valid",
-        "hdfs://hadoop:9000/raw_data/yellow_trips/valid",
+        "hdfs://hadoop-namenode:9000/raw_data/yellow_trips/valid",
         "ValidStream"
     )
     
     query_error = write_to_hdfs(
         df_error,
         "/tmp/spark-checkpoint/error",
-        "hdfs://hadoop:9000/raw_data/yellow_trips/error",
+        "hdfs://hadoop-namenode:9000/raw_data/yellow_trips/error",
         "ErrorStream"
     )
     

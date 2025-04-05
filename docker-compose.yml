@@ -43,19 +43,46 @@ services:
       - kafka
 
   # Data Ingestion
-  data_ingestion:
-      build: ./data_ingestion
-      container_name: data_ingestion
-      environment:
-        - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-        - KAFKA_TOPIC=yellow_trip_data
-        - SPEED=10.0
-      volumes:
-        - ./data_ingestion:/app
-      depends_on:
-        - kafka
-      networks:
-        - taxi-trip-records-network
+  # data_ingestion:
+  #     build: ./data_ingestion
+  #     container_name: data_ingestion
+  #     environment:
+  #       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+  #       - KAFKA_TOPIC=yellow_trip_data
+  #       - SPEED=10.0
+  #     volumes:
+  #       - ./data_ingestion:/app
+  #     depends_on:
+  #       - kafka
+  #     networks:
+  #       - taxi-trip-records-network
+
+  fast-api:
+    build: ./data_ingestion/fast-api
+    container_name: fast-api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data_ingestion/fast-api/data:/app/data:ro
+    depends_on:
+      - kafka
+    networks:
+      - taxi-trip-records-network
+
+  kafka-producer-cli:
+    build: ./data_ingestion/producer
+    container_name: kafka-producer-cli
+    environment:
+      - API_HOST=http://fast-api:5000
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPEED=2.0
+    volumes:
+      - ./data_ingestion/producer:/app
+    depends_on:
+      - kafka
+      - fast-api
+    networks:
+      - taxi-trip-records-network
 
   # Spark Cluster
   spark:
