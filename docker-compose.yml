@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Kafka and Zookeeper Cluster
   zookeeper:
     image: bitnami/zookeeper:3.8
     container_name: zookeeper
@@ -41,20 +42,22 @@ services:
     depends_on:
       - kafka
 
-  data_sender:
-      build: ./data_sender
-      container_name: data_sender
+  # Data Ingestion
+  data_ingestion:
+      build: ./data_ingestion
+      container_name: data_ingestion
       environment:
         - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
         - KAFKA_TOPIC=yellow_trip_data
         - SPEED=10.0
       volumes:
-        - ./data_sender:/app
+        - ./data_ingestion:/app
       depends_on:
         - kafka
       networks:
         - taxi-trip-records-network
 
+  # Spark Cluster
   spark:
     image: docker.io/bitnami/spark:3.5
     container_name: spark
@@ -71,8 +74,12 @@ services:
     volumes:
       - ./spark/src:/app
       - ./spark/jars:/opt/bitnami/spark/.ivy2/jars
+      - ./spark/checkpoint:/tmp/spark-checkpoint
     ports:
       - '8081:8080'
+    depends_on:
+      - kafka
+      - hadoop-namenode
     networks:
       - taxi-trip-records-network
 
@@ -89,9 +96,58 @@ services:
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
       - SPARK_USER=spark
+    depends_on:
+      - spark
     networks:
       - taxi-trip-records-network
+
+  # Hadoop cluster
+  hadoop-namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-namenode
+    hostname: hadoop-namenode
+    env_file:
+      - ./hadoop/.env
+    ports:
+      - "9870:9870"
+      - "9000:9000"
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+      # - ./hadoop/etc/hadoop:/opt/hadoop-3.2.1/etc/hadoop
+    networks:
+      - taxi-trip-records-network
+
+  hadoop-datanode-1:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-datanode-1
+    hostname: hadoop-datanode-1
+    env_file:
+      - ./hadoop/.env
+    volumes:
+      - hadoop_datanode_1:/hadoop/dfs/data
+    networks:
+      - taxi-trip-records-network
+    depends_on:
+      - hadoop-namenode
+
+  hadoop-datanode-2:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-datanode-2
+    hostname: hadoop-datanode-1
+    env_file:
+      - ./hadoop/.env
+    volumes:
+      - hadoop_datanode_2:/hadoop/dfs/data
+    networks:
+      - taxi-trip-records-network
+    depends_on:
+      - hadoop-namenode
 
 networks:
   taxi-trip-records-network:
     driver: bridge
+
+volumes:
+  hadoop_namenode:
+  hadoop_datanode_1:
+  hadoop_datanode_2:

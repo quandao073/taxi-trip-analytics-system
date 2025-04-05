@@ -1,2 +1,4 @@
 /spark/jars
+/spark/checkpoint
 /data/
+data_ingestion/data/
