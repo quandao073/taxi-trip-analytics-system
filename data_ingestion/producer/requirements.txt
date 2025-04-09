@@ -1,5 +1,3 @@
 pandas
 kafka-python
-pyarrow
 requests
-tqdm

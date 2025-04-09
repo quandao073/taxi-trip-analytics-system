@@ -4,12 +4,12 @@ metadata:
   name: data-source-pv
 spec:
   capacity:
-    storage: 10Gi
+    storage: 30Gi
   accessModes:
     - ReadOnlyMany
   nfs:
     server: 192.168.164.136
-    path: /data/data_ingestion/data_source
+    path: /data_ingestion/data_source
   persistentVolumeReclaimPolicy: Retain
 ---
 apiVersion: v1
@@ -22,4 +22,4 @@ spec:
     - ReadOnlyMany
   resources:
     requests:
-      storage: 10Gi
+      storage: 30Gi

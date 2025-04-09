@@ -14,21 +14,15 @@ spec:
         app: data-ingestion
     spec:
       containers:
-        - name: collector
-          image: quandao073/nyc-taxi-trips-ingestion:v1.1
+        - name: producer
+          image: quandao073/nyc-taxi-trips-ingestion:v2.0
+          command: ["/bin/sh"]
+          args: ["-c", "tail -f /dev/null"]
           env:
             - name: KAFKA_BOOTSTRAP_SERVERS
               value: kafka.nyc-taxi.svc.cluster.local:9092
-            - name: KAFKA_TOPIC
-              value: yellow_trip_data
+            - name: API_HOST
+              value: http://api-server.nyc-taxi.svc.cluster.local:5000
             - name: SPEED
-              value: "2"
-          volumeMounts:
-            - name: parquet-data
-              mountPath: /app/data
-              readOnly: true
-      volumes:
-        - name: parquet-data
-          persistentVolumeClaim:
-            claimName: data-source-pvc
+              value: "2.0"
       restartPolicy: Always

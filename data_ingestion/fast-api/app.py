@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 import pandas as pd
 import numpy as np
+import pyarrow.parquet as pq
 import os
 import logging
 
@@ -23,9 +24,21 @@ def get_trip_data(
     filepath = os.path.join(DATA_DIR, filename)
 
     if not os.path.exists(filepath):
+        logger.warning(f"File not found: {filepath}")
         raise HTTPException(status_code=404, detail="File not found")
 
     try:
+        total_rows = pq.ParquetFile(filepath).metadata.num_rows
+
+        if offset >= total_rows:
+            return JSONResponse(content={
+                "status": "done",
+                "data": [],
+                "total": total_rows,
+                "offset": offset,
+                "limit": limit
+            })
+
         df = pd.read_parquet(filepath)
         df = df.sort_values("tpep_pickup_datetime")
 
@@ -71,7 +84,7 @@ def get_trip_data(
         return JSONResponse(content={
             "status": "ok",
             "data": records,
-            "total": len(df),
+            "total": total_rows,
             "offset": offset,
             "limit": limit
         })

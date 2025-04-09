@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-ingestion-api-server
+  namespace: nyc-taxi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: data-ingestion-api-server
+  template:
+    metadata:
+      labels:
+        app: data-ingestion-api-server
+    spec:
+      containers:
+        - name: fastapi
+          image: quandao073/data-ingestion-api-server:v1.0
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: parquet-data
+              mountPath: /app/data
+              readOnly: true
+      volumes:
+        - name: parquet-data
+          persistentVolumeClaim:
+            claimName: data-source-pvc
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: data-ingestion-api-server
+  namespace: nyc-taxi
+spec:
+  selector:
+    app: data-ingestion-api-server
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP

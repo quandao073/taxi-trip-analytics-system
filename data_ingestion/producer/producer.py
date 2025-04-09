@@ -10,7 +10,6 @@ KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092"
 API_HOST = os.environ.get("API_HOST", "http://fast-api:5000")
 SPEED = float(os.environ.get("SPEED", "2.0"))
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--type", required=True, help="Hãng taxi (vd: yellow)")
@@ -23,7 +22,6 @@ def main():
     url_template = f"{API_HOST}/api/taxi_trip"
     offset = 0
     page_size = 100
-
     prev_time = None
 
     producer = KafkaProducer(
@@ -38,14 +36,18 @@ def main():
         response = requests.get(url)
 
         if response.status_code != 200:
-            print(f"API error: {response.status_code}")
+            print(f"API error {response.status_code}: {response.text}")
             break
 
         payload = response.json()
+        status = payload.get("status", "")
         records = payload.get("data", [])
-        if not records:
+
+        if status == "done" or not records:
             print("Gửi xong toàn bộ dữ liệu.")
             break
+
+        print(f"Đã gửi {len(records)} bản ghi vào Kafka topic '{topic}' (offset={offset})")
 
         for data in records:
             current_time = data.get("tpep_pickup_datetime")
@@ -62,6 +64,7 @@ def main():
             prev_time = current_time
 
         offset += page_size
+        time.sleep(0.2)
 
     producer.flush()
 
