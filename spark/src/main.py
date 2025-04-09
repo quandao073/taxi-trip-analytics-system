@@ -1,6 +1,8 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, year, month, dayofmonth, hour
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, TimestampType
+# import redis
+import json
 
 def create_yellow_taxi_schema():
     return StructType([
@@ -28,13 +30,8 @@ def create_yellow_taxi_schema():
 
 def create_spark_session():
     return SparkSession.builder \
-        .appName("TaxiTripStreamProcessor") \
-        .config("spark.sql.files.maxPartitionBytes", "134217728") \
-        .config("spark.sql.parquet.compression.codec", "snappy") \
-        .config("spark.sql.adaptive.enabled", "true") \
-        .config("spark.sql.shuffle.partitions", "10") \
-        .config("spark.memory.offHeap.enabled", "true") \
-        .config("spark.memory.offHeap.size", "1g") \
+        .appName("LoadData") \
+        .config('spark.jars.packages', 'org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.5') \
         .getOrCreate()
 
 def read_from_kafka(spark):
@@ -101,6 +98,22 @@ def write_to_hdfs(df, checkpoint_path, output_path, query_name, partition_cols=[
         .queryName(query_name) \
         .start()
 
+def write_to_redis(batch_df, batch_id):
+    r = redis.Redis(host="redis", port=6379, decode_responses=True)
+
+    for row in batch_df.collect():
+        trip_key = f"trip:{row['PULocationID']}_{row['DOLocationID']}_{row['tpep_pickup_datetime']}"
+        trip_value = {
+            "pickup_datetime": str(row['tpep_pickup_datetime']),
+            "dropoff_datetime": str(row['tpep_dropoff_datetime']),
+            "passenger_count": row['passenger_count'],
+            "trip_distance": row['trip_distance'],
+            "fare_amount": row['fare_amount'],
+            "total_amount": row['total_amount'],
+            "event_time": str(row['event_time']),
+        }
+        r.set(trip_key, json.dumps(trip_value), ex=600)
+
 def main():
     schema = create_yellow_taxi_schema()
     spark = create_spark_session()
@@ -121,6 +134,18 @@ def main():
         "hdfs://hadoop-namenode:9000/raw_data/yellow_trips/error",
         "ErrorStream"
     )
+    # query_valid = df_valid.writeStream \
+    #     .foreachBatch(write_to_redis) \
+    #     .outputMode("update") \
+    #     .trigger(processingTime="30 seconds") \
+    #     .option("checkpointLocation", "/tmp/spark-checkpoint/redis") \
+    #     .queryName("RedisValidStream") \
+    #     .start()
+
+    query_valid = df_valid.writeStream \
+        .format("console") \
+        .outputMode("append") \
+        .start()
     
     spark.streams.awaitAnyTermination()
 
