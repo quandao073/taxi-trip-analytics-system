@@ -4,15 +4,18 @@ ARG SPARK_VERSION=3.5.5
 
 USER root
 
-RUN apt update && apt install -y default-jdk wget curl
-RUN wget https://archive.apache.org/dist/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop3.tgz && \
-    tar -xvzf spark-${SPARK_VERSION}-bin-hadoop3.tgz -C /opt && \
-    mv /opt/spark-${SPARK_VERSION}-bin-hadoop3 /opt/spark && \
-    rm spark-${SPARK_VERSION}-bin-hadoop3.tgz
-
-ENV SPARK_HOME=/opt/spark
-ENV PATH=$PATH:$SPARK_HOME/bin
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    default-jdk \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 USER airflow
 
-RUN pip install pyspark==3.5.5 apache-airflow-providers-apache-spark==5.1.1
+RUN pip install --no-cache-dir \
+    pyspark==${SPARK_VERSION} \
+    apache-airflow-providers-apache-spark==5.1.1 \
+    kafka-python \
+    requests \
+    pandas \
+    pyarrow

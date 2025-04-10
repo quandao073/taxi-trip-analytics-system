@@ -9,19 +9,30 @@ import os
 KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
 API_HOST = os.environ.get("API_HOST", "http://fast-api:5000")
 SPEED = float(os.environ.get("SPEED", "2.0"))
+PAGE_SIZE = int(os.environ.get("PAGE_SIZE", "100"))
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--type", required=True, help="Hãng taxi (vd: yellow)")
     parser.add_argument("--year", type=int, required=True)
     parser.add_argument("--month", type=int, required=True)
+    parser.add_argument("--day", type=int, required=True)
+    parser.add_argument("--hour", type=int, required=True)
     args = parser.parse_args()
 
+    if args.type == "yellow":
+        pickup_field = "tpep_pickup_datetime"
+        dropoff_field = "tpep_dropoff_datetime"
+    elif args.type == "green":
+        pickup_field = "lpep_pickup_datetime"
+        dropoff_field = "lpep_dropoff_datetime"
+    else:
+        print(f"Không hỗ trợ loại taxi: {args.type}")
+        return
 
     topic = f"{args.type}_trip_data"
     url_template = f"{API_HOST}/api/taxi_trip"
     offset = 0
-    page_size = 100
     prev_time = None
 
     producer = KafkaProducer(
@@ -31,7 +42,7 @@ def main():
     )
 
     while True:
-        url = f"{url_template}?type={args.type}&year={args.year}&month={args.month}&offset={offset}&limit={page_size}"
+        url = f"{url_template}?type={args.type}&year={args.year}&month={args.month}&day={args.day}&hour={args.hour}&offset={offset}&limit={PAGE_SIZE}"
         print(f"Fetching: {url}")
         response = requests.get(url)
 
@@ -50,7 +61,7 @@ def main():
         print(f"Đã gửi {len(records)} bản ghi vào Kafka topic '{topic}' (offset={offset})")
 
         for data in records:
-            current_time = data.get("tpep_pickup_datetime")
+            current_time = data.get(pickup_field)
             if isinstance(current_time, str):
                 current_time = pd.to_datetime(current_time)
 
@@ -58,12 +69,11 @@ def main():
                 delay = (current_time - prev_time).total_seconds()
                 time.sleep(min(delay / SPEED, 10))
 
-            data["event_time"] = current_time.isoformat() if current_time else None
             key = str(data.get("PULocationID", "default"))
             producer.send(topic, key=key, value=data)
             prev_time = current_time
 
-        offset += page_size
+        offset += PAGE_SIZE
         time.sleep(0.2)
 
     producer.flush()

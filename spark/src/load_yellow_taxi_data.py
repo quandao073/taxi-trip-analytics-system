@@ -24,10 +24,8 @@ def create_yellow_taxi_schema():
         StructField("improvement_surcharge", DoubleType(), True),
         StructField("total_amount", DoubleType(), True),
         StructField("congestion_surcharge", DoubleType(), True),
-        StructField("Airport_fee", DoubleType(), True),
-        StructField("event_time", TimestampType(), True)
+        StructField("Airport_fee", DoubleType(), True)
     ])
-
 def create_spark_session():
     return SparkSession.builder \
         .appName("LoadData") \
@@ -73,16 +71,16 @@ def parse_and_validate_data(df_raw, schema):
     
     # Thêm cột phân vùng theo thời gian
     df_valid = df_valid \
-        .withColumn("year", year(col("event_time"))) \
-        .withColumn("month", month(col("event_time"))) \
-        .withColumn("day", dayofmonth(col("event_time"))) \
-        .withColumn("hour", hour(col("event_time")))
+        .withColumn("year", year(col("tpep_pickup_datetime"))) \
+        .withColumn("month", month(col("tpep_pickup_datetime"))) \
+        .withColumn("day", dayofmonth(col("tpep_pickup_datetime"))) \
+        .withColumn("hour", hour(col("tpep_pickup_datetime")))
     
     df_error = df_error \
-        .withColumn("year", year(col("event_time"))) \
-        .withColumn("month", month(col("event_time"))) \
-        .withColumn("day", dayofmonth(col("event_time"))) \
-        .withColumn("hour", hour(col("event_time")))
+        .withColumn("year", year(col("tpep_pickup_datetime"))) \
+        .withColumn("month", month(col("tpep_pickup_datetime"))) \
+        .withColumn("day", dayofmonth(col("tpep_pickup_datetime"))) \
+        .withColumn("hour", hour(col("tpep_pickup_datetime")))
     
     return df_valid, df_error
 
@@ -98,21 +96,21 @@ def write_to_hdfs(df, checkpoint_path, output_path, query_name, partition_cols=[
         .queryName(query_name) \
         .start()
 
-def write_to_redis(batch_df, batch_id):
-    r = redis.Redis(host="redis", port=6379, decode_responses=True)
+# def write_to_redis(batch_df, batch_id):
+#     r = redis.Redis(host="redis", port=6379, decode_responses=True)
 
-    for row in batch_df.collect():
-        trip_key = f"trip:{row['PULocationID']}_{row['DOLocationID']}_{row['tpep_pickup_datetime']}"
-        trip_value = {
-            "pickup_datetime": str(row['tpep_pickup_datetime']),
-            "dropoff_datetime": str(row['tpep_dropoff_datetime']),
-            "passenger_count": row['passenger_count'],
-            "trip_distance": row['trip_distance'],
-            "fare_amount": row['fare_amount'],
-            "total_amount": row['total_amount'],
-            "event_time": str(row['event_time']),
-        }
-        r.set(trip_key, json.dumps(trip_value), ex=600)
+#     for row in batch_df.collect():
+#         trip_key = f"trip:{row['PULocationID']}_{row['DOLocationID']}_{row['tpep_pickup_datetime']}"
+#         trip_value = {
+#             "pickup_datetime": str(row['tpep_pickup_datetime']),
+#             "dropoff_datetime": str(row['tpep_dropoff_datetime']),
+#             "passenger_count": row['passenger_count'],
+#             "trip_distance": row['trip_distance'],
+#             "fare_amount": row['fare_amount'],
+#             "total_amount": row['total_amount'],
+#             "event_time": str(row['event_time']),
+#         }
+#         r.set(trip_key, json.dumps(trip_value), ex=600)
 
 def main():
     schema = create_yellow_taxi_schema()
@@ -121,19 +119,19 @@ def main():
     df_raw = read_from_kafka(spark)
     df_valid, df_error = parse_and_validate_data(df_raw, schema)
     
-    query_valid = write_to_hdfs(
-        df_valid,
-        "/tmp/spark-checkpoint/valid",
-        "hdfs://hadoop-namenode:9000/raw_data/yellow_trips/valid",
-        "ValidStream"
-    )
+    # query_valid = write_to_hdfs(
+    #     df_valid,
+    #     "/tmp/spark-checkpoint/valid",
+    #     "hdfs://hadoop-namenode:9000/raw_data/yellow_trips/valid",
+    #     "ValidStream"
+    # )
     
-    query_error = write_to_hdfs(
-        df_error,
-        "/tmp/spark-checkpoint/error",
-        "hdfs://hadoop-namenode:9000/raw_data/yellow_trips/error",
-        "ErrorStream"
-    )
+    # query_error = write_to_hdfs(
+    #     df_error,
+    #     "/tmp/spark-checkpoint/error",
+    #     "hdfs://hadoop-namenode:9000/raw_data/yellow_trips/error",
+    #     "ErrorStream"
+    # )
     # query_valid = df_valid.writeStream \
     #     .foreachBatch(write_to_redis) \
     #     .outputMode("update") \
@@ -145,6 +143,7 @@ def main():
     query_valid = df_valid.writeStream \
         .format("console") \
         .outputMode("append") \
+        .trigger(processingTime='15 seconds') \
         .start()
     
     spark.streams.awaitAnyTermination()
