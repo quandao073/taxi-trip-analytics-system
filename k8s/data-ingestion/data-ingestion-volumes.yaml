@@ -8,9 +8,10 @@ spec:
   accessModes:
     - ReadOnlyMany
   nfs:
-    server: 192.168.164.136
-    path: /data_ingestion/data_source
+    server: 192.168.164.206
+    path: /data-1/data-source
   persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-storage
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -18,6 +19,7 @@ metadata:
   name: data-source-pvc
   namespace: nyc-taxi
 spec:
+  storageClassName: nfs-storage
   accessModes:
     - ReadOnlyMany
   resources:

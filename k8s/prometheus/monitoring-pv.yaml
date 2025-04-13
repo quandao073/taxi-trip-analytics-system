@@ -8,7 +8,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   nfs:
-    path: /data/monitoring
-    server: 192.168.164.136
+    path: /data-1/monitoring
+    server: 192.168.164.206
   persistentVolumeReclaimPolicy: Retain
   storageClassName: nfs-storage
