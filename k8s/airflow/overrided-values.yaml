@@ -1,0 +1,71 @@
+executor: "LocalExecutor"
+
+env:
+  - name: KAFKA_BOOTSTRAP_SERVERS
+    value: kafka.bigdata.svc.cluster.local:9092
+  - name: API_HOST
+    value: http://api-server.bigdata.svc.cluster.local:5000
+
+images:
+  airflow:
+    repository: quandao073/airflow
+    tag: v1.0
+    pullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  web:
+    enabled: true
+    path: /
+    host: quanda.airflow-web.local
+    ingressClassName: nginx
+
+webserver:
+  defaultUser:
+    enabled: true
+    role: Admin
+    username: quanda
+    password: quanda
+  service:
+    type: ClusterIP
+  extraVolumeMounts:
+    - name: airflow-code
+      mountPath: /opt/airflow/code
+  extraVolumes:
+    - name: airflow-code
+      persistentVolumeClaim:
+        claimName: airflow-code-pvc
+
+scheduler:
+  extraVolumeMounts:
+    - name: airflow-code
+      mountPath: /opt/airflow/code
+  extraVolumes:
+    - name: airflow-code
+      persistentVolumeClaim:
+        claimName: airflow-code-pvc
+
+triggerer:
+  extraVolumeMounts:
+    - name: airflow-code
+      mountPath: /opt/airflow/code
+  extraVolumes:
+    - name: airflow-code
+      persistentVolumeClaim:
+        claimName: airflow-code-pvc
+
+dags:
+  persistence:
+    enabled: true
+    storageClassName: nfs-airflow-storage
+
+postgresql:
+  enabled: true
+  auth:
+    enablePostgresUser: true
+    postgresPassword: postgres
+    username: "quanda"
+    password: "quanda"
+
+redis:
+  enabled: false

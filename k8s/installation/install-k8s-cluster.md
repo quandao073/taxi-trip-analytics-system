@@ -134,4 +134,26 @@ sudo kubeadm join 192.168.1.111:6443 --token your_token --discovery-token-ca-cer
 sudo kubeadm reset -f
 sudo rm -rf /var/lib/etcd
 sudo rm -rf /etc/kubernetes/manifests/*
+
 ```
+## 4. Triển khai mô hình gồm 3 master
+### Thực hiện trên k8s-master-1
+```sh
+sudo kubeadm init --control-plane-endpoint "192.168.164.201:6443" --upload-certs
+mkdir -p $HOME/.kube 
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config 
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
+```
+
+### Thực hiện trên server k8s-master-2 và k8s-master-3
+```sh
+sudo kubeadm join 192.168.1.111:6443 --token your_token --discovery-token-ca-cert-hash your_sha --control-plane --certificate-key your_cert
+mkdir -p $HOME/.kube 
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config 
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+```
+### 
+kubectl taint nodes quanda-k8s-master-1 node-role.kubernetes.io/control-plane:NoSchedule-
+kubectl taint nodes quanda-k8s-master-2 node-role.kubernetes.io/control-plane:NoSchedule-
+kubectl taint nodes quanda-k8s-master-3 node-role.kubernetes.io/control-plane:NoSchedule-

@@ -5,7 +5,7 @@ x-airflow-common:
   # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
   # image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.9.2}
-  image: quandao073/airflow:v1.2
+  image: quandao073/airflow:v1.0
   # build:
   #   context: .
   #   dockerfile: quandao073/airflow:v1.0
@@ -29,13 +29,25 @@ x-airflow-common:
     # The following line can be used to set a custom config file, stored in the local config folder
     # If you want to use it, outcomment it and replace airflow.cfg with the name of your config file
     # AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
+    KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    SPARK_MASTER_URL: spark://spark:7077
+    API_SERVER_HOST: fast-api:5000
+    SPEED: 10.0
+    PAGE_SIZE: 1000
+    TAXI_TYPE: yellow
+    CHECKPOINT_PATH: hdfs://hadoop-namenode:9000/checkpoints
+    HDFS_RAW_OUTPUT_PATH: hdfs://hadoop-namenode:9000/raw_data
+    TRIGGER_TIME: 5 minutes
+
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-    - ./spark/src:/opt/airflow/code/spark
     - ./data_ingestion/producer:/opt/airflow/code/kafka_producer
+    - ./spark/src:/opt/airflow/code/spark
+    - ./spark/conf:/opt/spark/conf
+    - ./spark/tmp:/opt/spark/tmp
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -231,121 +243,97 @@ services:
     networks:
       - taxi-trip-records-network
 
-  kafka-producer-cli:
-    build: ./data_ingestion/producer
-    container_name: kafka-producer-cli
-    environment:
-      - API_HOST=http://fast-api:5000
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - SPEED=100.0
-      - PAGE_SIZE=1000
-    volumes:
-      - ./data_ingestion/producer:/app
-    depends_on:
-      - kafka
-      - fast-api
-    networks:
-      - taxi-trip-records-network
-
   # Spark Cluster
-  spark:
-    image: docker.io/bitnami/spark:3.5.5
-    container_name: spark
-    environment:
-      - SPARK_MODE=master
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
-      # - LANG=C.UTF-8
-      # - LC_ALL=C.UTF-8
-      # - PYTHONIOENCODING=utf-8
-    volumes:
-      - ./spark/src:/app
-      - ./spark/jars:/opt/bitnami/spark/.ivy2/jars
-      - ./spark/checkpoint:/tmp/spark-checkpoint
+  # spark:
+  #   image: docker.io/bitnami/spark:3.5.5
+  #   container_name: spark
+  #   environment:
+  #     - SPARK_MODE=master
+  #     - SPARK_RPC_AUTHENTICATION_ENABLED=no
+  #     - SPARK_RPC_ENCRYPTION_ENABLED=no
+  #     - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+  #     - SPARK_SSL_ENABLED=no
+  #     - SPARK_USER=spark
+  #     # - LANG=C.UTF-8
+  #     # - LC_ALL=C.UTF-8
+  #     # - PYTHONIOENCODING=utf-8
+  #   volumes:
+  #     - ./spark/src:/app
+  #     - ./spark/jars:/opt/bitnami/spark/.ivy2/jars
+  #     - ./spark/checkpoint:/tmp/spark-checkpoint
+  #   ports:
+  #     - '8088:8080'
+  #   depends_on:
+  #     - kafka
+  #     # - hadoop-namenode
+  #   networks:
+  #     - taxi-trip-records-network
+
+  # spark-worker:
+  #   image: docker.io/bitnami/spark:3.5.5
+  #   container_name: spark-worker-1
+  #   environment:
+  #     - SPARK_MODE=worker
+  #     - SPARK_MASTER_URL=spark://spark:7077
+  #     - SPARK_WORKER_MEMORY=1G
+  #     - SPARK_WORKER_CORES=1
+  #     - SPARK_RPC_AUTHENTICATION_ENABLED=no
+  #     - SPARK_RPC_ENCRYPTION_ENABLED=no
+  #     - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+  #     - SPARK_SSL_ENABLED=no
+  #     - SPARK_USER=spark
+  #   depends_on:
+  #     - spark
+  #   networks:
+  #     - taxi-trip-records-network
+
+  # Hadoop cluster
+  hadoop-namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-namenode
+    hostname: hadoop-namenode
+    env_file:
+      - ./hadoop/.env
     ports:
-      - '8088:8080'
-    depends_on:
-      - kafka
-      # - hadoop-namenode
+      - "9870:9870"
+      - "9000:9000"
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
     networks:
       - taxi-trip-records-network
 
-  spark-worker:
-    image: docker.io/bitnami/spark:3.5.5
-    container_name: spark-worker-1
-    environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark:7077
-      - SPARK_WORKER_MEMORY=1G
-      - SPARK_WORKER_CORES=1
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
-    depends_on:
-      - spark
+  hadoop-datanode-1:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-datanode-1
+    hostname: hadoop-datanode-1
+    env_file:
+      - ./hadoop/.env
+    volumes:
+      - hadoop_datanode_1:/hadoop/dfs/data
     networks:
       - taxi-trip-records-network
+    depends_on:
+      - hadoop-namenode
 
-  # redis:
-  #   image: redis:7
-  #   container_name: redis
-  #   ports:
-  #     - "6379:6379"
-  #   networks:
-  #     - taxi-trip-records-network
-
-  # # Hadoop cluster
-  # hadoop-namenode:
-  #   image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
-  #   container_name: hadoop-namenode
-  #   hostname: hadoop-namenode
-  #   env_file:
-  #     - ./hadoop/.env
-  #   ports:
-  #     - "9870:9870"
-  #     - "9000:9000"
-  #   volumes:
-  #     - hadoop_namenode:/hadoop/dfs/name
-  #   networks:
-  #     - taxi-trip-records-network
-
-  # hadoop-datanode-1:
-  #   image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
-  #   container_name: hadoop-datanode-1
-  #   hostname: hadoop-datanode-1
-  #   env_file:
-  #     - ./hadoop/.env
-  #   volumes:
-  #     - hadoop_datanode_1:/hadoop/dfs/data
-  #   networks:
-  #     - taxi-trip-records-network
-  #   depends_on:
-  #     - hadoop-namenode
-
-  # hadoop-datanode-2:
-  #   image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
-  #   container_name: hadoop-datanode-2
-  #   hostname: hadoop-datanode-2
-  #   env_file:
-  #     - ./hadoop/.env
-  #   volumes:
-  #     - hadoop_datanode_2:/hadoop/dfs/data
-  #   networks:
-  #     - taxi-trip-records-network
-  #   depends_on:
-  #     - hadoop-namenode
+  hadoop-datanode-2:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: hadoop-datanode-2
+    hostname: hadoop-datanode-2
+    env_file:
+      - ./hadoop/.env
+    volumes:
+      - hadoop_datanode_2:/hadoop/dfs/data
+    networks:
+      - taxi-trip-records-network
+    depends_on:
+      - hadoop-namenode
 
 networks:
   taxi-trip-records-network:
     driver: bridge
 
 volumes:
-#   hadoop_namenode:
-#   hadoop_datanode_1:
-#   hadoop_datanode_2:
+  hadoop_namenode:
+  hadoop_datanode_1:
+  hadoop_datanode_2:
   postgres-db-volume:

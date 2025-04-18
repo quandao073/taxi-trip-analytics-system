@@ -57,7 +57,7 @@ helm version
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo update
 helm pull ingress-nginx/ingress-nginx
-tar -xzf ingress-nginx-4.11.3.tgz
+tar -xzf ingress-nginx-4.12.1.tgz
 vi ingress-nginx/values.yaml
 ```
 
@@ -74,7 +74,10 @@ helm -n ingress-nginx install ingress-nginx -f ingress-nginx/values.yaml ingress
 ---
 
 ## 4. Cấu hình NGINX server Load Balancer
-
+### Cài đặt nginx
+```sh
+sudo apt install nginx -y
+```
 ### Cập nhật port trong nginx default
 ```bash
 nano /etc/nginx/sites-available/default
@@ -115,12 +118,33 @@ systemctl restart nginx
 
 ---
 
-## 5. Cài đặt Prometheus và Grafana
-> *(Phần này bạn có thể thêm chi tiết hơn sau)*
+
+## 5. Cài đặt và cấu hình NFS Server 
+### Thực hiện trên database server
+```sh
+sudo apt install nfs-server -y
+sudo mkdir /data
+sudo chown -R nobody:nogroup /data
+sudo chmod -R 777 /data
+sudo vi /etc/exports
+/data *(rw,sync,no_subtree_check)
+sudo exportfs -rav
+sudo systemctl restart nfs-server
+```
+
+### Cài đặt và cấu hình NFS client (Thực hiện trên cả 3 servers k8s-master-1, k8s-master-2, k8s-master-3)
+```sh
+sudo apt install nfs-common -y
+```
 
 ---
 
-## 6. Backup hệ thống với Velero
+## 6. Cài đặt Prometheus và Grafana
+
+
+---
+
+## 7. Backup hệ thống với Velero
 
 ### Docker Compose MinIO (trên `database-server`)
 ```yaml

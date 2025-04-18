@@ -1,8 +1,14 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, year, month, dayofmonth, hour
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, TimestampType
-# import redis
-import json
+import os, time
+
+# Các biến môi trường
+TAXI_TYPE = os.environ.get("TAXI_TYPE", "yellow")
+CHECKPOINT_PATH = os.environ.get("CHECKPOINT_PATH", f"hdfs://hadoop-namenode:9000/checkpoints")
+HDFS_RAW_OUTPUT_PATH = os.environ.get("HDFS_RAW_OUTPUT_PATH", f"hdfs://hadoop-namenode:9000/raw_data")
+KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
+TRIGGER_TIME = os.environ.get("TRIGGER_TIME", "30 seconds")
 
 def create_yellow_taxi_schema():
     return StructType([
@@ -36,10 +42,9 @@ def read_from_kafka(spark):
     """Đọc dữ liệu từ Kafka"""
     return spark.readStream \
         .format("kafka") \
-        .option("kafka.bootstrap.servers", "kafka:9092") \
-        .option("subscribe", "yellow_trip_data") \
+        .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS) \
+        .option("subscribe", f"{TAXI_TYPE}_trip_data") \
         .option("startingOffsets", "latest") \
-        .option("maxOffsetsPerTrigger", 10000) \
         .option("failOnDataLoss", "false") \
         .load()
 
@@ -84,69 +89,76 @@ def parse_and_validate_data(df_raw, schema):
     
     return df_valid, df_error
 
-def write_to_hdfs(df, checkpoint_path, output_path, query_name, partition_cols=["year", "month", "day", "hour"]):
+def write_to_hdfs(df, trigger_time, checkpoint_path, output_path, query_name, partition_cols=["year", "month"]):
     """Ghi dữ liệu ra HDFS dưới dạng Parquet"""
     return df.writeStream \
         .format("parquet") \
         .outputMode("append") \
-        .trigger(processingTime='1 minutes') \
+        .trigger(processingTime=trigger_time) \
         .option("checkpointLocation", checkpoint_path) \
         .option("path", output_path) \
         .partitionBy(*partition_cols) \
         .queryName(query_name) \
         .start()
 
-# def write_to_redis(batch_df, batch_id):
-#     r = redis.Redis(host="redis", port=6379, decode_responses=True)
-
-#     for row in batch_df.collect():
-#         trip_key = f"trip:{row['PULocationID']}_{row['DOLocationID']}_{row['tpep_pickup_datetime']}"
-#         trip_value = {
-#             "pickup_datetime": str(row['tpep_pickup_datetime']),
-#             "dropoff_datetime": str(row['tpep_dropoff_datetime']),
-#             "passenger_count": row['passenger_count'],
-#             "trip_distance": row['trip_distance'],
-#             "fare_amount": row['fare_amount'],
-#             "total_amount": row['total_amount'],
-#             "event_time": str(row['event_time']),
-#         }
-#         r.set(trip_key, json.dumps(trip_value), ex=600)
-
 def main():
     schema = create_yellow_taxi_schema()
     spark = create_spark_session()
-    
+
     df_raw = read_from_kafka(spark)
     df_valid, df_error = parse_and_validate_data(df_raw, schema)
-    
-    # query_valid = write_to_hdfs(
-    #     df_valid,
-    #     "/tmp/spark-checkpoint/valid",
-    #     "hdfs://hadoop-namenode:9000/raw_data/yellow_trips/valid",
-    #     "ValidStream"
-    # )
-    
-    # query_error = write_to_hdfs(
-    #     df_error,
-    #     "/tmp/spark-checkpoint/error",
-    #     "hdfs://hadoop-namenode:9000/raw_data/yellow_trips/error",
-    #     "ErrorStream"
-    # )
-    # query_valid = df_valid.writeStream \
-    #     .foreachBatch(write_to_redis) \
-    #     .outputMode("update") \
-    #     .trigger(processingTime="30 seconds") \
-    #     .option("checkpointLocation", "/tmp/spark-checkpoint/redis") \
-    #     .queryName("RedisValidStream") \
-    #     .start()
 
-    query_valid = df_valid.writeStream \
+    # Ghi ra HDFS
+    query_valid = write_to_hdfs(
+        df=df_valid,
+        trigger_time=TRIGGER_TIME,
+        checkpoint_path=f"{CHECKPOINT_PATH}/{TAXI_TYPE}/valid",
+        output_path=f"{HDFS_RAW_OUTPUT_PATH}/{TAXI_TYPE}/valid",
+        query_name="ValidStream"
+    )
+
+    query_error = write_to_hdfs(
+        df=df_error,
+        trigger_time=TRIGGER_TIME,
+        checkpoint_path=f"{CHECKPOINT_PATH}/{TAXI_TYPE}/error",
+        output_path=f"{HDFS_RAW_OUTPUT_PATH}/{TAXI_TYPE}/error",
+        query_name="ErrorStream"
+    )
+
+
+    query_valid_console = df_valid.writeStream \
         .format("console") \
         .outputMode("append") \
         .trigger(processingTime='15 seconds') \
         .start()
-    
-    spark.streams.awaitAnyTermination()
+
+    # Dừng job khi không còn dữ liệu mới
+    idle_counter = 0
+    max_idle_count = 5
+
+    while query_valid_console.isActive:
+        progress = query_valid_console.lastProgress
+        if progress:
+            input_rows = progress.get("numInputRows", 1)  # fallback = 1 để tránh None
+            if input_rows == 0:
+                idle_counter += 1
+                print(f"[INFO] No new data. Idle {idle_counter}/{max_idle_count}")
+            else:
+                idle_counter = 0
+
+            if idle_counter >= max_idle_count:
+                print("[INFO] Reached max idle count. Stopping streaming query...")
+                query_valid.stop()
+                query_error.stop()
+                query_valid_console.stop()
+                break
+        else:
+            print("[INFO] Waiting for first progress...")
+
+        time.sleep(10)
+
+    spark.stop()
+
 
 if __name__ == "__main__":
     main()
