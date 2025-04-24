@@ -5,10 +5,7 @@ x-airflow-common:
   # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
   # image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.9.2}
-  image: quandao073/airflow:v1.0
-  # build:
-  #   context: .
-  #   dockerfile: quandao073/airflow:v1.0
+  image: quandao073/airflow:v1.1
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
@@ -29,23 +26,25 @@ x-airflow-common:
     # The following line can be used to set a custom config file, stored in the local config folder
     # If you want to use it, outcomment it and replace airflow.cfg with the name of your config file
     # AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
-    KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-    SPARK_MASTER_URL: spark://spark:7077
-    API_SERVER_HOST: fast-api:5000
-    SPEED: 10.0
-    PAGE_SIZE: 1000
-    TAXI_TYPE: yellow
-    CHECKPOINT_PATH: hdfs://hadoop-namenode:9000/checkpoints
-    HDFS_RAW_OUTPUT_PATH: hdfs://hadoop-namenode:9000/raw_data
-    TRIGGER_TIME: 5 minutes
+    DATA_INGESTION__TAXI_TYPE: yellow
+    DATA_INGESTION__API_HOST: http://fast-api:5000
+    DATA_INGESTION__SPEED: 20.0
+    DATA_INGESTION__QUERY_PAGE_SIZE: 10000
+
+    KAFKA__BOOTSTRAP_SERVERS: kafka:9092
+
+    SPARK__MASTER_URL: spark://spark:7077
+    SPARK_STREAMING__CHECKPOINT_PATH: hdfs://hadoop-namenode:9000/checkpoints
+    SPARK_STREAMING__TRIGGER_TIME: 10 seconds
+    
+    HDFS__RAW_OUTPUT_PATH: hdfs://hadoop-namenode:9000/raw_data
 
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
-    - ./data_ingestion/producer:/opt/airflow/code/kafka_producer
-    - ./spark/src:/opt/airflow/code/spark
+    - ./airflow/code:/opt/airflow/code
     - ./spark/conf:/opt/spark/conf
     - ./spark/tmp:/opt/spark/tmp
   user: "${AIRFLOW_UID:-50000}:0"
@@ -232,12 +231,12 @@ services:
       - kafka
 
   fast-api:
-    build: ./data_ingestion/fast-api
+    image: quandao073/data-ingestion-api-server:v1.3
     container_name: fast-api
     ports:
       - "5000:5000"
     volumes:
-      - ./data_ingestion/fast-api/data:/app/data:ro
+      - ./data_ingestion/fast-api/data:/app/data
     # depends_on:
     #   - kafka
     networks:
@@ -260,9 +259,10 @@ services:
   #   volumes:
   #     - ./spark/src:/app
   #     - ./spark/jars:/opt/bitnami/spark/.ivy2/jars
-  #     - ./spark/checkpoint:/tmp/spark-checkpoint
+  #     - ./data/:/tmp/data/
   #   ports:
-  #     - '8088:8080'
+  #     - "8088:8080"
+  #     - "7077:7077"
   #   depends_on:
   #     - kafka
   #     # - hadoop-namenode

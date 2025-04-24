@@ -8,16 +8,16 @@ import os
 
 KAFKA__BOOTSTRAP_SERVERS = os.environ.get("KAFKA__BOOTSTRAP_SERVERS", "kafka:9092")
 DATA_INGESTION__API_HOST = os.environ.get("DATA_INGESTION__API_HOST", "http://fast-api:5000")
-DATA_INGESTION__SPEED = float(os.environ.get("DATA_INGESTION__SPEED", "2.0"))
-DATA_INGESTION__QUERY_PAGE_SIZE = int(os.environ.get("DATA_INGESTION__QUERY_PAGE_SIZE", "100"))
+DATA_INGESTION__SPEED = float(os.environ.get("DATA_INGESTION__SPEED", "100.0"))
+DATA_INGESTION__QUERY_PAGE_SIZE = int(os.environ.get("DATA_INGESTION__QUERY_PAGE_SIZE", "100000"))
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--type", required=True, help="Hãng taxi (vd: yellow)")
     parser.add_argument("--year", type=int, required=True)
     parser.add_argument("--month", type=int, required=True)
-    parser.add_argument("--day", type=int, required=True)
-    parser.add_argument("--hour", type=int, required=True)
+    parser.add_argument("--day", type=int, required=False)
+    parser.add_argument("--hour", type=int, required=False)
     args = parser.parse_args()
 
     if args.type == "yellow":
@@ -43,6 +43,7 @@ def main():
 
     while True:
         url = f"{url_template}?type={args.type}&year={args.year}&month={args.month}&day={args.day}&hour={args.hour}&offset={offset}&limit={DATA_INGESTION__QUERY_PAGE_SIZE}"
+        # url = f"{url_template}?type={args.type}&year={args.year}&month={args.month}&offset={offset}&limit={DATA_INGESTION__QUERY_PAGE_SIZE}"
         print(f"Fetching: {url}")
         response = requests.get(url)
 
