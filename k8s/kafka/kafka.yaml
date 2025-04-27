@@ -22,18 +22,22 @@ spec:
           env:
             - name: KAFKA_CFG_ZOOKEEPER_CONNECT
               value: zookeeper.bigdata.svc.cluster.local:2181
+
             - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
               value: PLAINTEXT:PLAINTEXT
+
             - name: KAFKA_CFG_LISTENERS
               value: PLAINTEXT://:9092
-            - name: KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR
-              value: "3"
-            - name: KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
-              value: "3"
-            - name: KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR
-              value: "2"
+
+            - name: KAFKA_CFG_ADVERTISED_LISTENERS_COMMAND
+              value: "echo PLAINTEXT://$(hostname).kafka.bigdata.svc.cluster.local:9092"
+
+            - name: KAFKA_BROKER_ID_COMMAND
+              value: "echo ${HOSTNAME##*-}"
+
             - name: ALLOW_PLAINTEXT_LISTENER
               value: "yes"
+              
           volumeMounts:
             - name: data
               mountPath: /bitnami/kafka
@@ -45,4 +49,16 @@ spec:
         storageClassName: nfs-kafka-storage
         resources:
           requests:
-            storage: 10Gi
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: bigdata
+spec:
+  clusterIP: None
+  selector:
+    app: kafka
+  ports:
+    - port: 9092
