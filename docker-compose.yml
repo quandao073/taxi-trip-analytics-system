@@ -28,16 +28,19 @@ x-airflow-common:
     # AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
     DATA_INGESTION__TAXI_TYPE: yellow
     DATA_INGESTION__API_HOST: http://fast-api:5000
-    DATA_INGESTION__SPEED: 20.0
-    DATA_INGESTION__QUERY_PAGE_SIZE: 10000
+    DATA_INGESTION__SPEED: 4.0
+    DATA_INGESTION__QUERY_PAGE_SIZE: 100
 
     KAFKA__BOOTSTRAP_SERVERS: kafka:9092
 
     SPARK__MASTER_URL: spark://spark:7077
     SPARK_STREAMING__CHECKPOINT_PATH: hdfs://hadoop-namenode:9000/checkpoints
-    SPARK_STREAMING__TRIGGER_TIME: 10 seconds
+    SPARK_STREAMING__TRIGGER_TIME: 1 minute
     
-    HDFS__RAW_OUTPUT_PATH: hdfs://hadoop-namenode:9000/raw_data
+    HDFS__URI: hdfs://hadoop-namenode:9000
+
+    REDIS__HOST: redis
+    REDIS__PORT: 6379
 
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
@@ -189,6 +192,62 @@ services:
     networks:
       - taxi-trip-records-network
 
+  fast-api:
+    image: quandao073/data-ingestion-api-server:v1.1
+    container_name: fast-api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data_ingestion/fast-api/data:/app/data
+    networks:
+      - taxi-trip-records-network
+
+  postgres-db:
+    image: postgres:13
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: taxi_trip_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - taxi-trip-records-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres-db
+    networks:
+      - taxi-trip-records-network
+
+  superset:
+    image: apache/superset:latest
+    container_name: superset_app
+    ports:
+      - "8888:8088"
+    environment:
+      - SUPERSET_SECRET_KEY=supersecret
+      - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://admin:admin@postgres:5432/taxi_trip_db
+    depends_on:
+      - postgres-db
+    command:
+      [
+        "/bin/bash",
+        "-c",
+        "superset db upgrade && superset fab create-admin --username admin --firstname Superset --lastname Admin --email admin@superset.com --password admin && superset init && superset run -h 0.0.0.0 -p 8088 --with-threads --reload --debugger"
+      ]
+    networks:
+      - taxi-trip-records-network
+
   # Kafka and Zookeeper Cluster
   zookeeper:
     image: bitnami/zookeeper:3.8
@@ -229,63 +288,76 @@ services:
       - taxi-trip-records-network
     depends_on:
       - kafka
-
-  fast-api:
-    image: quandao073/data-ingestion-api-server:v1.3
-    container_name: fast-api
-    ports:
-      - "5000:5000"
+  
+  # Spark Cluster
+  spark:
+    image: docker.io/bitnami/spark:3.5.5
+    container_name: spark
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+      # - LANG=C.UTF-8
+      # - LC_ALL=C.UTF-8
+      # - PYTHONIOENCODING=utf-8
     volumes:
-      - ./data_ingestion/fast-api/data:/app/data
+      - ./spark/src:/app
+      - ./data/:/tmp/data/
+    ports:
+      - "8088:8080"
+      - "7077:7077"
     # depends_on:
-    #   - kafka
+      # - kafka
+      # - hadoop-namenode
     networks:
       - taxi-trip-records-network
 
-  # Spark Cluster
-  # spark:
-  #   image: docker.io/bitnami/spark:3.5.5
-  #   container_name: spark
-  #   environment:
-  #     - SPARK_MODE=master
-  #     - SPARK_RPC_AUTHENTICATION_ENABLED=no
-  #     - SPARK_RPC_ENCRYPTION_ENABLED=no
-  #     - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-  #     - SPARK_SSL_ENABLED=no
-  #     - SPARK_USER=spark
-  #     # - LANG=C.UTF-8
-  #     # - LC_ALL=C.UTF-8
-  #     # - PYTHONIOENCODING=utf-8
-  #   volumes:
-  #     - ./spark/src:/app
-  #     - ./spark/jars:/opt/bitnami/spark/.ivy2/jars
-  #     - ./data/:/tmp/data/
-  #   ports:
-  #     - "8088:8080"
-  #     - "7077:7077"
-  #   depends_on:
-  #     - kafka
-  #     # - hadoop-namenode
-  #   networks:
-  #     - taxi-trip-records-network
+  spark-worker:
+    image: docker.io/bitnami/spark:3.5.5
+    container_name: spark-worker-1
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+      - SPARK_WORKER_MEMORY=1G
+      - SPARK_WORKER_CORES=1
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      - SPARK_USER=spark
+    depends_on:
+      - spark
+    networks:
+      - taxi-trip-records-network
 
-  # spark-worker:
-  #   image: docker.io/bitnami/spark:3.5.5
-  #   container_name: spark-worker-1
-  #   environment:
-  #     - SPARK_MODE=worker
-  #     - SPARK_MASTER_URL=spark://spark:7077
-  #     - SPARK_WORKER_MEMORY=1G
-  #     - SPARK_WORKER_CORES=1
-  #     - SPARK_RPC_AUTHENTICATION_ENABLED=no
-  #     - SPARK_RPC_ENCRYPTION_ENABLED=no
-  #     - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-  #     - SPARK_SSL_ENABLED=no
-  #     - SPARK_USER=spark
-  #   depends_on:
-  #     - spark
-  #   networks:
-  #     - taxi-trip-records-network
+  web-backend:
+    image: quandao073/web-backend:v1.0
+    container_name: web-backend
+    ports:
+      - "8089:8080"
+    networks:
+      - taxi-trip-records-network
+
+  web-frontend:
+    image: quandao073/web-frontend:v1.0
+    container_name: web-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - web-backend
+    networks:
+      - taxi-trip-records-network
+
+  redis:
+    image: redis:6-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - taxi-trip-records-network
 
   # Hadoop cluster
   hadoop-namenode:
@@ -333,6 +405,7 @@ networks:
     driver: bridge
 
 volumes:
+  pg_data:
   hadoop_namenode:
   hadoop_datanode_1:
   hadoop_datanode_2:

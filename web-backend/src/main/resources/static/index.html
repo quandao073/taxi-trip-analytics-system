@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NYC Taxi Realtime Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f7f7f7; }
+    h2 { color: #333; }
+    canvas { background: #fff; padding: 10px; border: 1px solid #ddd; margin-top: 20px; }
+    .timestamp { font-size: 0.9em; color: #666; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <h2>📊 Trip Count by Borough (Realtime)</h2>
+  <canvas id="boroughChart" height="150"></canvas>
+  <div class="timestamp" id="last-updated">Last updated: --</div>
+
+  <script>
+    const ctx = document.getElementById('boroughChart').getContext('2d');
+    const boroughChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Trip Count',
+          data: [],
+          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+
+    async function fetchAndUpdateChart() {
+      try {
+        const res = await fetch('/api/realtime/borough/top');
+        const data = await res.json();
+
+        const labels = data.map(item => item.borough);
+        const values = data.map(item => item.trip_count);
+
+        boroughChart.data.labels = labels;
+        boroughChart.data.datasets[0].data = values;
+        boroughChart.update();
+
+        document.getElementById('last-updated').textContent =
+          'Last updated: ' + new Date().toLocaleTimeString();
+      } catch (err) {
+        console.error('Error fetching borough data:', err);
+      }
+    }
+
+    fetchAndUpdateChart();
+    setInterval(fetchAndUpdateChart, 10000);
+  </script>
+
+</body>
+</html>
