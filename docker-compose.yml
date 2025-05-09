@@ -28,7 +28,7 @@ x-airflow-common:
     # AIRFLOW_CONFIG: '/opt/airflow/config/airflow.cfg'
     DATA_INGESTION__TAXI_TYPE: yellow
     DATA_INGESTION__API_HOST: http://fast-api:5000
-    DATA_INGESTION__SPEED: 4.0
+    DATA_INGESTION__SPEED: 2.0
     DATA_INGESTION__QUERY_PAGE_SIZE: 100
 
     KAFKA__BOOTSTRAP_SERVERS: kafka:9092
@@ -334,7 +334,7 @@ services:
       - taxi-trip-records-network
 
   web-backend:
-    image: quandao073/web-backend:v1.0
+    image: quandao073/web-backend:v1.1
     container_name: web-backend
     ports:
       - "8089:8080"
@@ -342,7 +342,7 @@ services:
       - taxi-trip-records-network
 
   web-frontend:
-    image: quandao073/web-frontend:v1.0
+    image: quandao073/web-frontend:v1.2
     container_name: web-frontend
     ports:
       - "5173:80"

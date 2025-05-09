@@ -19,7 +19,7 @@ def get_or_create_time_var():
         return json.loads(time_str)
     except KeyError:
         initial_time = {
-            "year": 2023,
+            "year": 2024,
             "month": 1,
             "day": 1,
             "hour": 0
@@ -80,21 +80,21 @@ def streaming_hourly_dag():
 
     load_stream_data = BashOperator(
         task_id="load_stream_data",
-        bash_command="spark-submit /opt/airflow/code/load_data.py",
+        bash_command="spark-submit /opt/airflow/code/transform_load_data.py",
     )
 
-    transform_stream_data = BashOperator(
-        task_id="transform_stream_data",
-        bash_command="""
-            spark-submit /opt/airflow/code/transform_data.py \
-            {{ task_instance.xcom_pull(task_ids='get_and_increment_time')['year'] }} \
-            {{ task_instance.xcom_pull(task_ids='get_and_increment_time')['month'] }} \
-            {{ task_instance.xcom_pull(task_ids='get_and_increment_time')['day'] }} \
-            {{ task_instance.xcom_pull(task_ids='get_and_increment_time')['hour'] }}
-        """
-    )
+    # transform_stream_data = BashOperator(
+    #     task_id="transform_stream_data",
+    #     bash_command="""
+    #         spark-submit /opt/airflow/code/transform_data.py \
+    #         {{ task_instance.xcom_pull(task_ids='get_and_increment_time')['year'] }} \
+    #         {{ task_instance.xcom_pull(task_ids='get_and_increment_time')['month'] }} \
+    #         {{ task_instance.xcom_pull(task_ids='get_and_increment_time')['day'] }} \
+    #         {{ task_instance.xcom_pull(task_ids='get_and_increment_time')['hour'] }}
+    #     """
+    # )
 
 
-    time_params >> [extract_data, load_stream_data] >> transform_stream_data
+    time_params >> [extract_data, load_stream_data]
 
 streaming_dag = streaming_hourly_dag()
