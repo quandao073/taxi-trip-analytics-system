@@ -12,7 +12,7 @@ function App() {
 
   // Khởi tạo WebSocket client
   const setupWebSocket = useCallback(() => {
-    const socket = new SockJS('http://localhost:8089/ws');
+    const socket = new SockJS('http://api-quanda.web-backend.local/ws');
     const stompClient = new Client({
       webSocketFactory: () => socket,
       reconnectDelay: 5000,

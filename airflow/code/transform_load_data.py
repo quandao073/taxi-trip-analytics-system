@@ -3,6 +3,7 @@ from pyspark.sql.functions import *
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, TimestampType, LongType
 import os, time, json
 from redis import Redis
+from redis.sentinel import Sentinel
 from redis.connection import ConnectionPool
 
 # Các biến môi trường
@@ -10,15 +11,31 @@ DATA_INGESTION__TAXI_TYPE           = os.environ.get("DATA_INGESTION__TAXI_TYPE"
 KAFKA__BOOTSTRAP_SERVERS            = os.environ.get("KAFKA__BOOTSTRAP_SERVERS", "kafka:9092")
 SPARK_STREAMING__TRIGGER_TIME       = os.environ.get("SPARK_STREAMING__TRIGGER_TIME", "10 seconds")
 HDFS__URI                           = os.environ.get("HDFS__URI", "hdfs://hadoop-hadoop-hdfs-nn:9000")
-REDIS__HOST                         = os.environ.get("REDIS__HOST", "redis")
-REDIS__PORT                         = os.environ.get("REDIS__PORT", "6379")
+REDIS__SENTINEL_HOST                = os.environ.get("REDIS__SENTINEL_HOST", "redis-sentinel.bigdata.svc.cluster.local")
+REDIS__SENTINEL_PORT                = int(os.environ.get("REDIS__SENTINEL_PORT", "26379"))
+REDIS__MASTER_NAME                  = os.environ.get("REDIS__MASTER_NAME", "mymaster")
+REDIS__PASSWORD                     = os.environ.get("REDIS__PASSWORD", "quanda")
 
-REDIS_POOL = ConnectionPool(
-    host=REDIS__HOST,
-    port=int(REDIS__PORT),
-    max_connections=10,
-    decode_responses=True
+# REDIS_POOL = ConnectionPool(
+#     host=REDIS__HOST,
+#     port=int(REDIS__PORT),
+#     password=REDIS__PASSWORD,
+#     max_connections=10,
+#     decode_responses=True
+# )
+
+sentinel = Sentinel(
+    [(REDIS__SENTINEL_HOST, REDIS__SENTINEL_PORT)],
+    sentinel_kwargs={"password": REDIS__PASSWORD},
+    socket_timeout=1
 )
+
+def get_redis_connection():
+    return sentinel.master_for(
+        REDIS__MASTER_NAME,
+        password=REDIS__PASSWORD,
+        decode_responses=True
+    )
 
 # Định nghĩa schema
 schema = StructType(
@@ -115,7 +132,8 @@ df_valid = df_valid \
 
 
 def write_to_redis(batch_df, batch_id):
-    redis_conn = Redis(connection_pool=REDIS_POOL)
+    # redis_conn = Redis(connection_pool=REDIS_POOL)
+    redis_conn = get_redis_connection()
 
     try:
         stats = batch_df.groupBy("pickup_zone", "pickup_borough").agg(
