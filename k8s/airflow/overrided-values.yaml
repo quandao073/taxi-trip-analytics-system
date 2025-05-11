@@ -1,13 +1,38 @@
 executor: "LocalExecutor"
 
-envFrom:
-  - configMapRef:
-      name: airflow-env-vars
+# envFrom:
+#   - configMapRef:
+#       name: airflow-env-vars
+
+env:
+  - name: DATA_INGESTION__TAXI_TYPE
+    value: "yellow"
+  - name: DATA_INGESTION__API_HOST
+    value: "http://data-ingestion-api-server.bigdata.svc.cluster.local:5000"
+  - name: DATA_INGESTION__SPEED
+    value: "2.0"
+  - name: DATA_INGESTION__QUERY_PAGE_SIZE
+    value: "20"
+  - name: KAFKA__BOOTSTRAP_SERVERS
+    value: "kafka.bigdata.svc.cluster.local:9092"
+  - name: SPARK_STREAMING__TRIGGER_TIME
+    value: "5 minutes"
+  - name: HDFS__URI
+    value: "hdfs://hadoop-hadoop-hdfs-nn:9000"
+  - name: REDIS__SENTINEL_HOST
+    value: "redis-sentinel.bigdata.svc.cluster.local"
+  - name: REDIS__SENTINEL_PORT
+    value: "26379"
+  - name: REDIS__MASTER_NAME
+    value: "mymaster"
+  - name: REDIS__PASSWORD
+    value: "quanda"
+
 
 images:
   airflow:
     repository: quandao073/airflow
-    tag: v1.0
+    tag: v1.1
     pullPolicy: IfNotPresent
 
 ingress:
@@ -55,7 +80,13 @@ triggerer:
 dags:
   persistence:
     enabled: true
-    storageClassName: nfs-airflow-storage
+    existingClaim: airflow-dags-pvc
+
+logs:
+  persistence:
+    enabled: true
+    size: 20Gi
+    existingClaim: airflow-logs-pvc
 
 postgresql:
   enabled: true

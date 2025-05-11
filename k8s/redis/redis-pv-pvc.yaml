@@ -10,7 +10,7 @@ spec:
   nfs:
     path: /B/redis/
     server: 192.168.164.206
-  persistentVolumeReclaimPolicy: Retain
+  persistentVolumeReclaimPolicy: Delete
   storageClassName: nfs-storage
 ---
 apiVersion: v1

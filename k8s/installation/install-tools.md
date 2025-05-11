@@ -5,17 +5,24 @@
 ### Gán disk (ổ cứng) vào trong thư mục `/data`
 ```bash
 sudo mkfs.ext4 -m 0 /dev/sdb
+
 mkdir /data
+
 echo "/dev/sdb  /data  ext4  defaults  0  0" | sudo tee -a /etc/fstab
+
 mount -a
+
 sudo df -h
 ```
 
 ### Cài đặt Docker
 ```bash
 apt update
+
 apt install docker.io
+
 apt install docker-compose
+
 docker -v && docker-compose -v
 ```
 
@@ -24,7 +31,7 @@ docker -v && docker-compose -v
 version: '3'
 services:
   rancher-server:
-    image: rancher/rancher:v2.9.2
+    image: rancher/rancher:v2.10.1
     container_name: rancher-server
     restart: unless-stopped
     ports:
@@ -42,11 +49,15 @@ docker logs rancher-server 2>&1 | grep "Bootstrap Password:"
 
 ---
 
+# Phần 2 và 3 thực hiện trên k8s-master-1, user root
 ## 2. Cài đặt Helm
 ```bash
 wget https://get.helm.sh/helm-v3.17.3-linux-amd64.tar.gz
+
 tar xvf helm-v3.17.3-linux-amd64.tar.gz
+
 mv linux-amd64/helm /usr/bin
+
 helm version
 ```
 
@@ -55,10 +66,14 @@ helm version
 ## 3. Cài đặt Ingress Controller
 ```bash
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+
 helm repo update
+
 helm pull ingress-nginx/ingress-nginx
-tar -xzf ingress-nginx-4.12.1.tgz
-vi ingress-nginx/values.yaml
+
+tar -xzf ingress-nginx-4.12.x.tgz
+
+nano ingress-nginx/values.yaml
 ```
 
 > **Chính sửa trong `values.yaml`:**
@@ -67,7 +82,12 @@ vi ingress-nginx/values.yaml
 > - `nodePort.https: ""` → `https: "30443"`
 
 ```bash
+cp -rf ingress-nginx /home/anhquan
+
+su - anhquan
+
 kubectl create ns ingress-nginx
+
 helm -n ingress-nginx install ingress-nginx -f ingress-nginx/values.yaml ingress-nginx
 ```
 
@@ -91,8 +111,7 @@ nano /etc/nginx/conf.d/<name>.vn.conf
 
 ```nginx
 upstream my_servers {
-    # địa chỉ của các server master node và worker node
-    server 192.168.164.200:30080;
+    # địa chỉ của các server k8s
     server 192.168.164.201:30080;
     server 192.168.164.202:30080;
     server 192.168.164.203:30080;
@@ -123,12 +142,19 @@ systemctl restart nginx
 ### Thực hiện trên database server
 ```sh
 sudo apt install nfs-server -y
+
 sudo mkdir /data
+
 sudo chown -R nobody:nogroup /data
+
 sudo chmod -R 777 /data
-sudo vi /etc/exports
-/data *(rw,sync,no_subtree_check)
+
+sudo nano /etc/exports
+
+/data *(rw,sync,no_subtree_check,no_root_squash)
+
 sudo exportfs -rav
+
 sudo systemctl restart nfs-server
 ```
 

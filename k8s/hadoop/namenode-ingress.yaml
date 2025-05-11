@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hadoop-namenode-ingress
+  namespace: bigdata
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: quanda.hadoop.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: hadoop-hadoop-hdfs-nn
+                port:
+                  number: 9870

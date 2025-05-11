@@ -16,8 +16,8 @@ hdfs:
 
     resources:
       requests:
-        memory: "256Mi"
-        cpu: "10m"
+        memory: "512Mi"
+        cpu: "100m"
       limits:
         memory: "2048Mi"
         cpu: "1000m"
@@ -36,10 +36,10 @@ hdfs:
 
     resources:
       requests:
-        memory: "256Mi"
-        cpu: "10m"
+        memory: "512Mi"
+        cpu: "100m"
       limits:
-        memory: "2048Mi"
+        memory: "1024Mi"
         cpu: "1000m"
 
   webhdfs:
@@ -70,8 +70,8 @@ yarn:
     # This should be tuned to fit your workload.
     resources:
       requests:
-        memory: "1024Mi"
-        cpu: "500m"
+        memory: "512Mi"
+        cpu: "250m"
       limits:
         memory: "1024Mi"
         cpu: "500m"
@@ -81,10 +81,10 @@ persistence:
     enabled: true
     storageClass: nfs-hadoop-storage
     accessMode: ReadWriteOnce
-    size: 50Gi
+    size: 30Gi
 
   dataNode:
     enabled: true
     storageClass: nfs-hadoop-storage
     accessMode: ReadWriteOnce
-    size: 100Gi
+    size: 20Gi

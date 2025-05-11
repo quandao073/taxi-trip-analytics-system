@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airflow-env-vars
+  namespace: bigdata
+data:
+  DATA_INGESTION__TAXI_TYPE: "yellow"
+  DATA_INGESTION__API_HOST: "http://data-ingestion-api-server.bigdata.svc.cluster.local:5000"
+  DATA_INGESTION__SPEED: "2.0"
+  DATA_INGESTION__QUERY_PAGE_SIZE: "20"
+  KAFKA__BOOTSTRAP_SERVERS: "kafka.bigdata.svc.cluster.local:9092"
+  SPARK_STREAMING__TRIGGER_TIME: "5 minutes"
+  HDFS__URI: "hdfs://hadoop-hadoop-hdfs-nn:9000"
+  REDIS__SENTINEL_HOST: "redis-sentinel.bigdata.svc.cluster.local"
+  REDIS__SENTINEL_PORT: "26379"
+  REDIS__MASTER_NAME: "mymaster"
+  REDIS__PASSWORD: "quanda"

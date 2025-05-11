@@ -23,13 +23,22 @@ spec:
       namespace: bigdata
     spec:
       containers:
-        - image: quandao073/web-backend:v1.2
+        - image: quandao073/web-backend:v1.3
           imagePullPolicy: Always
           name: web-backend
           ports:
             - containerPort: 8080
               name: tcp
               protocol: TCP
+          volumeMounts:
+            - mountPath: /run/config/application.properties
+              name: web-backend-application-properties-config-volume
+              subPath: application.properties
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: web-backend-application-properties-configmap
+          name: web-backend-application-properties-config-volume
 ---
 apiVersion: v1
 kind: Service
