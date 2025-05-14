@@ -29,13 +29,14 @@ x-airflow-common:
     DATA_INGESTION__TAXI_TYPE: yellow
     DATA_INGESTION__API_HOST: http://fast-api:5000
     DATA_INGESTION__SPEED: 2.0
-    DATA_INGESTION__QUERY_PAGE_SIZE: 100
+    DATA_INGESTION__QUERY_PAGE_SIZE: 50
 
     KAFKA__BOOTSTRAP_SERVERS: kafka:9092
 
     SPARK__MASTER_URL: spark://spark:7077
     SPARK_STREAMING__CHECKPOINT_PATH: hdfs://hadoop-namenode:9000/checkpoints
     SPARK_STREAMING__TRIGGER_TIME: 1 minute
+    # SPARK_STREAMING__TRIGGER_TIME: 5 seconds
     
     HDFS__URI: hdfs://hadoop-namenode:9000
 
@@ -202,51 +203,51 @@ services:
     networks:
       - taxi-trip-records-network
 
-  postgres-db:
-    image: postgres:13
-    container_name: postgres_db
-    environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: taxi_trip_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-    networks:
-      - taxi-trip-records-network
+  # postgres-db:
+  #   image: postgres:13
+  #   container_name: postgres_db
+  #   environment:
+  #     POSTGRES_USER: admin
+  #     POSTGRES_PASSWORD: admin
+  #     POSTGRES_DB: taxi_trip_db
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pg_data:/var/lib/postgresql/data
+  #   networks:
+  #     - taxi-trip-records-network
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    depends_on:
-      - postgres-db
-    networks:
-      - taxi-trip-records-network
+  # pgadmin:
+  #   image: dpage/pgadmin4
+  #   container_name: pgadmin
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: admin@admin.com
+  #     PGADMIN_DEFAULT_PASSWORD: admin
+  #   ports:
+  #     - "5050:80"
+  #   depends_on:
+  #     - postgres-db
+  #   networks:
+  #     - taxi-trip-records-network
 
-  superset:
-    image: apache/superset:latest
-    container_name: superset_app
-    ports:
-      - "8888:8088"
-    environment:
-      - SUPERSET_SECRET_KEY=supersecret
-      - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://admin:admin@postgres:5432/taxi_trip_db
-    depends_on:
-      - postgres-db
-    command:
-      [
-        "/bin/bash",
-        "-c",
-        "superset db upgrade && superset fab create-admin --username admin --firstname Superset --lastname Admin --email admin@superset.com --password admin && superset init && superset run -h 0.0.0.0 -p 8088 --with-threads --reload --debugger"
-      ]
-    networks:
-      - taxi-trip-records-network
+  # superset:
+  #   image: apache/superset:latest
+  #   container_name: superset_app
+  #   ports:
+  #     - "8888:8088"
+  #   environment:
+  #     - SUPERSET_SECRET_KEY=supersecret
+  #     - SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://admin:admin@postgres:5432/taxi_trip_db
+  #   depends_on:
+  #     - postgres-db
+  #   command:
+  #     [
+  #       "/bin/bash",
+  #       "-c",
+  #       "superset db upgrade && superset fab create-admin --username admin --firstname Superset --lastname Admin --email admin@superset.com --password admin && superset init && superset run -h 0.0.0.0 -p 8088 --with-threads --reload --debugger"
+  #     ]
+  #   networks:
+  #     - taxi-trip-records-network
 
   # Kafka and Zookeeper Cluster
   zookeeper:
@@ -341,15 +342,15 @@ services:
     networks:
       - taxi-trip-records-network
 
-  web-frontend:
-    image: quandao073/web-frontend:v1.2
-    container_name: web-frontend
-    ports:
-      - "5173:80"
-    depends_on:
-      - web-backend
-    networks:
-      - taxi-trip-records-network
+  # web-frontend:
+  #   image: quandao073/web-frontend:v1.2
+  #   container_name: web-frontend
+  #   ports:
+  #     - "5173:80"
+  #   depends_on:
+  #     - web-backend
+  #   networks:
+  #     - taxi-trip-records-network
 
   redis:
     image: redis:6-alpine
@@ -370,6 +371,7 @@ services:
       - "9870:9870"
       - "9000:9000"
     volumes:
+      - ./hadoop/etc/hadoop:/opt/hadoop-3.2.1/etc/hadoop
       - hadoop_namenode:/hadoop/dfs/name
     networks:
       - taxi-trip-records-network
@@ -381,6 +383,7 @@ services:
     env_file:
       - ./hadoop/.env
     volumes:
+      - ./hadoop/etc/hadoop:/opt/hadoop-3.2.1/etc/hadoop
       - hadoop_datanode_1:/hadoop/dfs/data
     networks:
       - taxi-trip-records-network
@@ -394,6 +397,7 @@ services:
     env_file:
       - ./hadoop/.env
     volumes:
+      - ./hadoop/etc/hadoop:/opt/hadoop-3.2.1/etc/hadoop
       - hadoop_datanode_2:/hadoop/dfs/data
     networks:
       - taxi-trip-records-network

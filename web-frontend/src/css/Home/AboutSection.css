@@ -1,0 +1,93 @@
+.about {
+    height: 50vh;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+  padding: 0 20%;
+  margin: 2rem 0;
+}
+
+.about__cards {
+  display: flex;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.about__card {
+  position: relative;
+  width: 160px;
+  height: 250px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
+  /* overflow: hidden; */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: flex-end;
+}
+
+.about__card-info {
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+  background-color: #1f2937; /* dark overlay */
+  color: #fff;
+  padding: 1rem;
+  text-align: left;
+  width: 80%;
+}
+
+.about__card-info h3 {
+  font-size: 2rem;
+  margin: 0;
+  color: #facc15;
+}
+
+.about__icon {
+  color: #facc15;
+}
+
+.about__content {
+  flex: 2;
+  max-width: 500px;
+}
+
+.about__label {
+  text-transform: uppercase;
+  color: #888;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.about__content h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+.about__content h3 {
+  font-size: 1.5rem;
+  font-weight: 400;
+  margin-bottom: 1rem;
+}
+
+.about__desc {
+  color: #666;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.about__btn {
+  padding: 0.75rem 1.5rem;
+  background-color: #facc15;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.about__btn:hover {
+  background-color: #eab308;
+}

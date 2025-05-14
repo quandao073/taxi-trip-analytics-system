@@ -1,0 +1,61 @@
+.dashboard-wrapper {
+    padding: 40px 10%;
+    background-color: #fff;
+}
+
+.dashboard-realtime-header {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.dashboard-realtime-container {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 5%;
+}
+
+.realtime-table-container,
+.realtime-chart-container {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.realtime-table-container,
+.realtime-chart-container h3 {
+    text-align: center;
+}
+
+/* Realtime table */
+.realtime-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 1rem;
+  background-color: white;
+  transition: opacity 0.3s ease;
+}
+
+.realtime-table th,
+.realtime-table td {
+  padding: 12px 20px;
+  border: 1px solid #ccc;
+  text-align: center;
+}
+
+.realtime-table thead {
+  background-color: #f0f0f0;
+  font-weight: bold;
+  color: black;
+}
+
+.realtime-table--disconnected {
+  opacity: 0.6;
+}
+
+.realtime-table__empty {
+  text-align: center;
+  padding: 2rem;
+  color: #777;
+}

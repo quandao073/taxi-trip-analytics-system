@@ -2,6 +2,7 @@ from airflow.decorators import dag, task
 from airflow.operators.bash import BashOperator
 from airflow.models import Variable
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import json, os
 
 DATA_INGESTION__TAXI_TYPE = os.environ.get("DATA_INGESTION__TAXI_TYPE", "yellow")
@@ -30,7 +31,7 @@ def get_or_create_time_var():
 @dag(
     default_args=default_args,
     schedule_interval=None,
-    # schedule_interval=timedelta(minutes=2),
+    # schedule_interval=timedelta(minutes=3),
     start_date=datetime(2025, 4, 16),
     catchup=False,
     tags=["streaming_data"]
@@ -43,11 +44,13 @@ def streaming_hourly_dag():
         
         dt = datetime(
             current_time['year'], 
-            current_time['month'], 
+            current_time['month'],
             current_time['day'], 
             current_time['hour']
         )
         dt += timedelta(hours=1)
+        # if (current_time['month'] != 1):
+        #     dt += relativedelta(months=1)
         
         updated_time = {
             "year": dt.year,
@@ -82,18 +85,6 @@ def streaming_hourly_dag():
         task_id="load_stream_data",
         bash_command="spark-submit /opt/airflow/code/transform_load_data.py",
     )
-
-    # transform_stream_data = BashOperator(
-    #     task_id="transform_stream_data",
-    #     bash_command="""
-    #         spark-submit /opt/airflow/code/transform_data.py \
-    #         {{ task_instance.xcom_pull(task_ids='get_and_increment_time')['year'] }} \
-    #         {{ task_instance.xcom_pull(task_ids='get_and_increment_time')['month'] }} \
-    #         {{ task_instance.xcom_pull(task_ids='get_and_increment_time')['day'] }} \
-    #         {{ task_instance.xcom_pull(task_ids='get_and_increment_time')['hour'] }}
-    #     """
-    # )
-
 
     time_params >> [extract_data, load_stream_data]
 

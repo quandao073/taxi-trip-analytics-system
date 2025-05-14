@@ -1,0 +1,27 @@
+.dashboard-clock {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-direction: column;
+  font-size: 1rem;
+  color: #333;
+  gap: 0.5rem;
+}
+.dashboard-clock {
+  color: #ffcc00;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.reset-time-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffcc00;
+    font-weight: 500; 
+}
+
+.reset-time-btn:hover {
+    background-color: #9f7c23;
+    color: #1b1b0b
+}

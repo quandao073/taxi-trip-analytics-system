@@ -1,0 +1,90 @@
+.hero {
+  position: relative;
+  background-image: url('https://images.pexels.com/photos/8247/pexels-photo.jpg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2');
+  background-size: cover;
+  background-position: center;
+  height: 80vh;
+  display: flex;
+  align-items: center;
+  color: white;
+}
+
+.hero__overlay {
+  background: rgba(0, 0, 0, 0.6);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  padding-left: 15%;
+}
+
+.hero__content {
+  max-width: 400px;
+
+}
+
+.hero__tagline {
+  text-transform: uppercase;
+  font-size: 1rem;
+  letter-spacing: 1px;
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.hero__title {
+  font-size: 3rem;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+.hero__title_1 {
+  color: #facc15;
+  font-size: 3rem;
+  font-weight: bold;
+}
+
+.hero__title_2 {
+  font-weight: 300;
+}
+
+.hero__desc {
+  font-size: 13px;
+  margin-bottom: 2rem;
+  color: #c5c5c5;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.hero__buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.hero__btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.hero__btn--primary {
+  background-color: #facc15;
+  border: none;
+  color: #000;
+}
+.hero__btn--primary:hover {
+  background-color: #eab308;
+}
+
+.hero__btn--outline {
+  background: transparent;
+  border: 2px solid #fff;
+  color: #fff;
+}
+.hero__btn--outline:hover {
+  background-color: #fff;
+  color: #000;
+}

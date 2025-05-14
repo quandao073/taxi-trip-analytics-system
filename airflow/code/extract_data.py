@@ -8,8 +8,8 @@ import os
 
 KAFKA__BOOTSTRAP_SERVERS = os.environ.get("KAFKA__BOOTSTRAP_SERVERS", "kafka:9092")
 DATA_INGESTION__API_HOST = os.environ.get("DATA_INGESTION__API_HOST", "http://fast-api:5000")
-DATA_INGESTION__SPEED = float(os.environ.get("DATA_INGESTION__SPEED", "100.0"))
-DATA_INGESTION__QUERY_PAGE_SIZE = int(os.environ.get("DATA_INGESTION__QUERY_PAGE_SIZE", "100000"))
+DATA_INGESTION__SPEED = float(os.environ.get("DATA_INGESTION__SPEED", "2.0"))
+DATA_INGESTION__QUERY_PAGE_SIZE = int(os.environ.get("DATA_INGESTION__QUERY_PAGE_SIZE", "100"))
 
 def main():
     parser = argparse.ArgumentParser()

@@ -1,68 +1,116 @@
+/* ====== VARIABLES ====== */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --color-primary: #fec501;
+  /* --color-primary-hover: #535bf2; */
+  --color-dark: #1a1a1a;
+  --color-light: #ffffff;
+  --color-text: #213547;
+  --color-bg: #f5f5f5;
+
+  --font-base: system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 2rem;
+
+  --border-radius: 8px;
+  --transition: 0.25s ease;
+
+  font-family: var(--font-base);
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+/* ====== RESET ====== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
+/* ====== BASE STYLES ====== */
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
+  background-color: var(--color-light);
+  color: var(--color-text);
   min-width: 320px;
   min-height: 100vh;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  font-size: 1em;
+  padding: 0.6em 1.2em;
+  border-radius: var(--border-radius);
+  border: 1px solid transparent;
+  background-color: var(--color-dark);
+  color: white;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color var(--transition), background-color var(--transition);
 }
-button:hover {
-  border-color: #646cff;
-}
+
+/* button:hover {
+  border-color: var(--color-dark);
+  background-color: var(--color-primary);
+} */
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* ====== LAYOUT UTILITY ====== */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+/* ====== RESPONSIVE ====== */
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color: var(--color-text);
+    background-color: var(--color-light);
   }
-  a:hover {
-    color: #747bff;
-  }
+
   button {
-    background-color: #f9f9f9;
+    background-color: #f0f0f0;
+    color: var(--color-dark);
   }
+}
+
+#global__clock {
+  padding: 20px;
+  background-color: #213547;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  position: 'fixed';
+  top: 100;
+  right: 20;
+  z-index: 9999;
 }

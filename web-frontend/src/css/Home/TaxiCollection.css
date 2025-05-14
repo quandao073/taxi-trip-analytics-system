@@ -1,0 +1,94 @@
+.taxi-section {
+  text-align: center;
+  padding: 4rem 10%;
+}
+
+.taxi-label {
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  color: #888;
+  margin-bottom: 0.5rem;
+}
+
+.taxi-header h2 {
+  font-size: 2rem;
+  margin-bottom: 0.2rem;
+  font-weight: bold;
+}
+
+.taxi-header h3 {
+  font-size: 1.3rem;
+  font-weight: 400;
+  margin-bottom: 1rem;
+}
+
+.taxi-desc {
+  max-width: 600px;
+  margin: 0 auto 2rem;
+  color: #666;
+}
+
+.taxi-cards {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.taxi-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  width: 280px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.taxi-card img {
+  width: 100%;
+  height: auto;
+  margin-bottom: 1rem;
+}
+
+.taxi-card h4 {
+  font-size: 1.2rem;
+  margin-bottom: 0.25rem;
+}
+
+.taxi-price {
+  display: inline-block;
+  background: #facc15;
+  color: #000;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.taxi-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+}
+
+.taxi-features li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #eee;
+}
+
+.taxi-book {
+  background-color: #facc15;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  font-weight: bold;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.taxi-book:hover {
+  background-color: #eab308;
+}

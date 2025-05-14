@@ -16,13 +16,15 @@ REDIS__SENTINEL_PORT                = int(os.environ.get("REDIS__SENTINEL_PORT",
 REDIS__MASTER_NAME                  = os.environ.get("REDIS__MASTER_NAME", "mymaster")
 REDIS__PASSWORD                     = os.environ.get("REDIS__PASSWORD", "quanda")
 
-# REDIS_POOL = ConnectionPool(
-#     host=REDIS__HOST,
-#     port=int(REDIS__PORT),
-#     password=REDIS__PASSWORD,
-#     max_connections=10,
-#     decode_responses=True
-# )
+REDIS__HOST='redis'
+REDIS__PORT=6379
+REDIS_POOL = ConnectionPool(
+    host=REDIS__HOST,
+    port=int(REDIS__PORT),
+    # password=REDIS__PASSWORD,
+    max_connections=10,
+    decode_responses=True
+)
 
 sentinel = Sentinel(
     [(REDIS__SENTINEL_HOST, REDIS__SENTINEL_PORT)],
@@ -132,11 +134,11 @@ df_valid = df_valid \
 
 
 def write_to_redis(batch_df, batch_id):
-    # redis_conn = Redis(connection_pool=REDIS_POOL)
-    redis_conn = get_redis_connection()
+    redis_conn = Redis(connection_pool=REDIS_POOL)
+    # redis_conn = get_redis_connection()
 
     try:
-        stats = batch_df.groupBy("pickup_zone", "pickup_borough").agg(
+        stats = batch_df.groupBy("pickup_zone").agg(
             count("*").alias("trip_count"),
             sum("total_amount").alias("total_revenue")
         ).collect()
