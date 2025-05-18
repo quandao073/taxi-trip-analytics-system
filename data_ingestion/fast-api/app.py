@@ -10,6 +10,29 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(default_response_class=ORJSONResponse)
 
+STANDARD_SCHEMA = {
+    "VendorID": "Int64",
+    "tpep_pickup_datetime": "datetime64[ns]",
+    "tpep_dropoff_datetime": "datetime64[ns]",
+    "passenger_count": "Int64",
+    "trip_distance": "float64",
+    "RatecodeID": "float64",
+    "store_and_fwd_flag": "string",
+    "PULocationID": "Int64",
+    "DOLocationID": "Int64",
+    "payment_type": "Int64",
+    "fare_amount": "float64",
+    "extra": "float64",
+    "mta_tax": "float64",
+    "tip_amount": "float64",
+    "tolls_amount": "float64",
+    "improvement_surcharge": "float64",
+    "total_amount": "float64",
+    "congestion_surcharge": "float64",
+    "airport_fee": "float64"
+}
+
+
 @app.get("/api/taxi_trip")
 def get_trip_data(
     type: str,
@@ -34,14 +57,28 @@ def get_trip_data(
         df = pd.read_parquet(filepath)
         df.rename(columns={"Airport_fee": "airport_fee"}, inplace=True)
 
-        df[pickup_field] = pd.to_datetime(df[pickup_field], errors="coerce")
-        df = df.dropna(subset=[pickup_field])
-        df = df[df[pickup_field].dt.year == year]
+        # Chuẩn hóa schema: thêm cột thiếu, ép kiểu
+        for col, dtype in STANDARD_SCHEMA.items():
+            if col not in df.columns:
+                df[col] = pd.NA
+            try:
+                df[col] = df[col].astype(dtype)
+            except Exception as e:
+                logger.warning(f"Failed to cast column '{col}' to '{dtype}': {e}")
+                df[col] = pd.NA
 
-        if day is not None:
-            df = df[df[pickup_field].dt.day == day]
-        if hour is not None:
-            df = df[df[pickup_field].dt.hour == hour]
+        # Chuẩn hóa datetime
+        if pickup_field in df.columns:
+            df[pickup_field] = pd.to_datetime(df[pickup_field], errors="coerce")
+            df = df.dropna(subset=[pickup_field])
+            df = df[df[pickup_field].dt.year == year]
+            df = df[df[pickup_field].dt.month == month]
+            if day is not None:
+                df = df[df[pickup_field].dt.day == day]
+            if hour is not None:
+                df = df[df[pickup_field].dt.hour == hour]
+        else:
+            return {"status": "done", "data": [], "total": 0, "offset": offset, "limit": limit}
 
         total_rows = len(df)
         if offset >= total_rows:
@@ -56,20 +93,13 @@ def get_trip_data(
         df = df.sort_values(pickup_field)
         df_paginated = df.iloc[offset:offset + limit].copy()
 
-        # Convert datetime columns to string
+        # Format datetime về ISO
         datetime_cols = df_paginated.select_dtypes(include=["datetime64[ns]"]).columns
-        df_paginated[datetime_cols] = df_paginated[datetime_cols].astype(str)
+        for col in datetime_cols:
+            df_paginated[col] = df_paginated[col].dt.strftime('%Y-%m-%dT%H:%M:%S')
 
-        # Replace NaN and Inf with None
+        # Thay NaN, Inf thành None
         df_paginated = df_paginated.replace([np.nan, np.inf, -np.inf], None)
-
-        # Cast float columns that should be integer
-        float_to_int_cols = ["passenger_count", "payment_type"]
-        for col in float_to_int_cols:
-            if col in df_paginated.columns:
-                df_paginated[col] = df_paginated[col].apply(
-                    lambda x: int(x) if isinstance(x, (float, np.float64)) and x == int(x) else x
-                )
 
         records = df_paginated.to_dict(orient="records")
 

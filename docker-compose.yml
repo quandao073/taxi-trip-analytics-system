@@ -29,7 +29,7 @@ x-airflow-common:
     DATA_INGESTION__TAXI_TYPE: yellow
     DATA_INGESTION__API_HOST: http://fast-api:5000
     DATA_INGESTION__SPEED: 2.0
-    DATA_INGESTION__QUERY_PAGE_SIZE: 50
+    DATA_INGESTION__QUERY_PAGE_SIZE: 30
 
     KAFKA__BOOTSTRAP_SERVERS: kafka:9092
 
@@ -194,7 +194,7 @@ services:
       - taxi-trip-records-network
 
   fast-api:
-    image: quandao073/data-ingestion-api-server:v1.1
+    image: quandao073/data-ingestion-api-server:v1.3
     container_name: fast-api
     ports:
       - "5000:5000"
@@ -335,7 +335,8 @@ services:
       - taxi-trip-records-network
 
   web-backend:
-    image: quandao073/web-backend:v1.1
+    # image: quandao073/web-backend:v1.1
+    image: quandao073/web-backend:v1.4.1
     container_name: web-backend
     ports:
       - "8089:8080"
@@ -371,7 +372,6 @@ services:
       - "9870:9870"
       - "9000:9000"
     volumes:
-      - ./hadoop/etc/hadoop:/opt/hadoop-3.2.1/etc/hadoop
       - hadoop_namenode:/hadoop/dfs/name
     networks:
       - taxi-trip-records-network
@@ -383,7 +383,6 @@ services:
     env_file:
       - ./hadoop/.env
     volumes:
-      - ./hadoop/etc/hadoop:/opt/hadoop-3.2.1/etc/hadoop
       - hadoop_datanode_1:/hadoop/dfs/data
     networks:
       - taxi-trip-records-network
@@ -397,7 +396,6 @@ services:
     env_file:
       - ./hadoop/.env
     volumes:
-      - ./hadoop/etc/hadoop:/opt/hadoop-3.2.1/etc/hadoop
       - hadoop_datanode_2:/hadoop/dfs/data
     networks:
       - taxi-trip-records-network

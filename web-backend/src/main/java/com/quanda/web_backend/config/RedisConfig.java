@@ -58,3 +58,52 @@ public class RedisConfig {
         return new MessageListenerAdapter(subscriber, "onMessage");
     }
 }
+
+
+//  import com.quanda.web_backend.service.RedisSubscriber;
+//  import org.springframework.beans.factory.annotation.Value;
+//  import org.springframework.context.annotation.*;
+//  import org.springframework.data.redis.connection.*;
+//  import org.springframework.data.redis.connection.lettuce.*;
+//  import org.springframework.data.redis.listener.*;
+//  import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
+//  import java.time.Duration;
+ 
+// @Configuration
+// public class RedisConfig {
+
+//     @Value("${spring.redis.host}")
+//     private String host;
+
+//     @Value("${spring.redis.port}")
+//     private int port;
+
+//     @Bean
+//     public RedisConnectionFactory redisConnectionFactory() {
+//         RedisStandaloneConfiguration standaloneConfig = new RedisStandaloneConfiguration();
+//         standaloneConfig.setHostName(host);
+//         standaloneConfig.setPort(port);
+
+//         LettuceClientConfiguration clientConfig = LettuceClientConfiguration.builder()
+//                 .commandTimeout(Duration.ofMillis(60000))
+//                 .shutdownTimeout(Duration.ZERO)
+//                 .build();
+
+//         return new LettuceConnectionFactory(standaloneConfig, clientConfig);
+//     }
+
+//     @Bean
+//     public RedisMessageListenerContainer redisMessageListenerContainer(
+//             RedisConnectionFactory factory,
+//             MessageListenerAdapter adapter) {
+//         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+//         container.setConnectionFactory(factory);
+//         container.addMessageListener(adapter, new ChannelTopic("pickup-stats-channel"));
+//         return container;
+//     }
+
+//     @Bean
+//     public MessageListenerAdapter listenerAdapter(RedisSubscriber subscriber) {
+//         return new MessageListenerAdapter(subscriber, "onMessage");
+//     }
+// }

@@ -45,7 +45,7 @@ def main():
         url = f"{url_template}?type={args.type}&year={args.year}&month={args.month}&day={args.day}&hour={args.hour}&offset={offset}&limit={DATA_INGESTION__QUERY_PAGE_SIZE}"
         # url = f"{url_template}?type={args.type}&year={args.year}&month={args.month}&offset={offset}&limit={DATA_INGESTION__QUERY_PAGE_SIZE}"
         print(f"Fetching: {url}")
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=20)
 
         if response.status_code != 200:
             print(f"API error {response.status_code}: {response.text}")

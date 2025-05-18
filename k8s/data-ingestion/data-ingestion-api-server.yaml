@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: fastapi
-          image: quandao073/data-ingestion-api-server:v1.1
+          image: quandao073/data-ingestion-api-server:v1.2
           ports:
             - containerPort: 5000
           volumeMounts:

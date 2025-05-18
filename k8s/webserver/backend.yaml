@@ -23,7 +23,7 @@ spec:
       namespace: bigdata
     spec:
       containers:
-        - image: quandao073/web-backend:v1.3
+        - image: quandao073/web-backend:v1.3.1
           imagePullPolicy: Always
           name: web-backend
           ports:

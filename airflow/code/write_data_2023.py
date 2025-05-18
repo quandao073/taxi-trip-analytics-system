@@ -1,45 +1,14 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, TimestampType, LongType
-from pyspark.ml import PipelineModel
-from datetime import timedelta
 import os, time, json
-# from redis import Redis
-from redis.sentinel import Sentinel
-# from redis.connection import ConnectionPool
+
 
 # Các biến môi trường
 DATA_INGESTION__TAXI_TYPE           = os.environ.get("DATA_INGESTION__TAXI_TYPE", "yellow")
 KAFKA__BOOTSTRAP_SERVERS            = os.environ.get("KAFKA__BOOTSTRAP_SERVERS", "kafka:9092")
 SPARK_STREAMING__TRIGGER_TIME       = os.environ.get("SPARK_STREAMING__TRIGGER_TIME", "10 seconds")
 HDFS__URI                           = os.environ.get("HDFS__URI", "hdfs://hadoop-hadoop-hdfs-nn:9000")
-REDIS__SENTINEL_HOST                = os.environ.get("REDIS__SENTINEL_HOST", "redis-sentinel.bigdata.svc.cluster.local")
-REDIS__SENTINEL_PORT                = int(os.environ.get("REDIS__SENTINEL_PORT", "26379"))
-REDIS__MASTER_NAME                  = os.environ.get("REDIS__MASTER_NAME", "mymaster")
-REDIS__PASSWORD                     = os.environ.get("REDIS__PASSWORD", "quanda")
-
-# REDIS__HOST='redis'
-# REDIS__PORT=6379
-# REDIS_POOL = ConnectionPool(
-#     host=REDIS__HOST,
-#     port=int(REDIS__PORT),
-#     # password=REDIS__PASSWORD,
-#     max_connections=10,
-#     decode_responses=True
-# )
-
-sentinel = Sentinel(
-    [(REDIS__SENTINEL_HOST, REDIS__SENTINEL_PORT)],
-    sentinel_kwargs={"password": REDIS__PASSWORD},
-    socket_timeout=1
-)
-
-def get_redis_connection():
-    return sentinel.master_for(
-        REDIS__MASTER_NAME,
-        password=REDIS__PASSWORD,
-        decode_responses=True
-    )
 
 # Định nghĩa schema
 schema = StructType(
@@ -66,11 +35,9 @@ schema = StructType(
     ]
 )
 
-model = PipelineModel.load(f"{HDFS__URI}/models/trip_forecast_model")
-
 # Khởi tạo Spark Session
 spark = SparkSession.builder \
-        .appName("TransformLoadData") \
+        .appName("LoadData") \
         .config('spark.jars.packages', 'org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.5') \
         .getOrCreate()
 
@@ -136,86 +103,23 @@ df_valid = df_valid \
         .join(broadcast(pickup_lookup), on="PULocationID", how="left") \
         .join(broadcast(dropoff_lookup), on="DOLocationID", how="left")
 
-
-def write_to_redis(batch_df, batch_id):
-    # redis_conn = Redis(connection_pool=REDIS_POOL)
-    redis_conn = get_redis_connection()
-
-    try:
-        timestamp_df = batch_df.select(max("tpep_pickup_datetime").alias("max_pickup_time")).collect()
-        current_pickup_time = timestamp_df[0]["max_pickup_time"]
-
-        if current_pickup_time is not None:
-            formatted_time = current_pickup_time.strftime('%Y-%m-%d %H:%M:%S')
-            
-            # Tổng số chuyến đi trong batch hiện tại
-            trip_count_df = batch_df.select(count("*").alias("batch_trip_count")).collect()
-            batch_trip_count = int(trip_count_df[0]["batch_trip_count"])
-
-            # Cộng dồn chuyến đi
-            total_trips_key = "total_trips"
-            current_total = redis_conn.get(total_trips_key)
-            current_total = int(current_total) if current_total else 0
-            new_total = current_total + batch_trip_count
-            redis_conn.set(total_trips_key, new_total)
-
-            # Dự đoán số chuyến đi phát sinh trong 1 giờ tới
-            future_time = current_pickup_time + timedelta(hours=1)
-            predict_input = spark.createDataFrame([{
-                "hour": future_time.hour,
-                "day_of_week": future_time.isoweekday(),
-                "is_weekend": 1 if future_time.weekday() >= 5 else 0,
-                "trip_count": new_total
-            }])
-
-            predicted_df = model.transform(predict_input)
-            predicted_increment = int(predicted_df.select("prediction").first()["prediction"])
-            predicted_trip_count = new_total + predicted_increment
-
-            predicted_time = (current_pickup_time + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S')
-
-            redis_conn.publish("pickup-stats-channel", json.dumps({
-                "timestamp": formatted_time,
-                "trip_count": new_total,
-                "predicted_timestamp": predicted_time,
-                "predicted_trip_count": predicted_trip_count
-            }))
-
-            print(f"Published: {formatted_time}, total={new_total}, predict@+1h={predicted_trip_count}")
-
-    except Exception as e:
-        print(f"Redis error: {str(e)}")
-    finally:
-        redis_conn.close()
-
-
 # Lưu dữ liệu
 # Streaming 1: HDFS
 query_hdfs_valid = df_valid.writeStream \
         .format("parquet") \
         .outputMode("append") \
-        .trigger(processingTime=SPARK_STREAMING__TRIGGER_TIME) \
-        .option("checkpointLocation", f"{HDFS__URI}/checkpoints/hdfs/valid") \
         .option("path", f"{HDFS__URI}/raw_data/valid") \
+        .option("checkpointLocation", f"{HDFS__URI}/checkpoints/hdfs/valid") \
         .partitionBy(["year", "month", "day", "hour"]) \
         .start()
 
 query_hdfs_error = df_error.writeStream \
         .format("parquet") \
         .outputMode("append") \
-        .trigger(processingTime=SPARK_STREAMING__TRIGGER_TIME) \
-        .option("checkpointLocation", f"{HDFS__URI}/checkpoints/hdfs/error") \
         .option("path", f"{HDFS__URI}/raw_data/error") \
+        .option("checkpointLocation", f"{HDFS__URI}/checkpoints/hdfs/error") \
         .partitionBy(["year", "month", "day", "hour"]) \
         .start()
-
-# Streaming 2: Redis
-query_redis = df_valid.writeStream \
-    .foreachBatch(write_to_redis) \
-    .outputMode("append") \
-    .trigger(processingTime="10 seconds") \
-    .option("checkpointLocation", f"{HDFS__URI}/checkpoints/redis") \
-    .start()
 
 # Dừng Session khi gửi xong
 idle_counter = 0
@@ -223,14 +127,13 @@ max_idle_count = 5
 
 try:
     while True:
-        if not (query_redis.isActive and query_hdfs_valid.isActive and query_hdfs_error.isActive):
+        if not (query_hdfs_valid.isActive and query_hdfs_error.isActive):
             break
         
         # Kiểm tra idle và xử lý
-        redis_progress = query_redis.lastProgress or {}
         hdfs_progress = query_hdfs_valid.lastProgress or {}
         
-        if redis_progress.get("numInputRows", 0) == 0 and hdfs_progress.get("numInputRows", 0) == 0:
+        if hdfs_progress.get("numInputRows", 0) == 0:
             idle_counter += 1
             if idle_counter >= 5:
                 print("No data for 50 seconds, stopping...")
@@ -240,7 +143,6 @@ try:
             
         time.sleep(10)
 finally:
-    query_redis.stop()
     query_hdfs_valid.stop()
     query_hdfs_error.stop()
     spark.stop()

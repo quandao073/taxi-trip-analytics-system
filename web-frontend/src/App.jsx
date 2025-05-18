@@ -153,9 +153,9 @@ export default function App() {
 
   return (
     <>
-      <div id='global__clock' style={{ position: 'fixed', top: 100, right: 20, zIndex: 9999 }}>
+      {/* <div id='global__clock' style={{ position: 'fixed', top: 100, right: 20, zIndex: 9999 }}>
         <Clock />
-      </div>
+      </div> */}
       <Header />
       <Routes>
         <Route path="/" element={<Home />} />
