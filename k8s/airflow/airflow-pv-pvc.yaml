@@ -1,3 +1,5 @@
+# ------------------------------------------------------Dags-----------------------------------------------------
+
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -27,7 +29,7 @@ spec:
   storageClassName: nfs-storage
 
 ---
-
+# ------------------------------------------------------Code-----------------------------------------------------
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -57,6 +59,38 @@ spec:
   storageClassName: nfs-storage
 
 ---
+# ------------------------------------------------------Datasource-----------------------------------------------------
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: airflow-datasource-pv
+spec:
+  capacity:
+    storage: 30Gi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    path: /A/airflow/datasource
+    server: 192.168.164.206
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs-storage
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: airflow-datasource-pvc
+  namespace: bigdata
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 30Gi
+  storageClassName: nfs-storage
+
+---
+# ------------------------------------------------------Logs-----------------------------------------------------
 
 apiVersion: v1
 kind: PersistentVolume

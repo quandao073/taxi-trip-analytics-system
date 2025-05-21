@@ -1,0 +1,19 @@
+architecture: "standalone"
+
+auth:
+  username: "quanda"
+  password: "quanda"
+  database: "taxi_trip_db"
+
+primary:
+  persistence:
+    enabled: true
+    existingClaim: postgres-db-pvc
+    size: 20Gi
+    storageClass: nfs-storage
+
+volumePermissions:
+  enabled: true
+
+metrics:
+  enabled: true
