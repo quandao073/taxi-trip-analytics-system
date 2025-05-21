@@ -14,10 +14,9 @@ spark = SparkSession.builder \
         .getOrCreate()
 
 # Đọc dữ liệu
-df = spark.read.parquet(f"{HDFS__URI}/raw_data/valid")
+df = spark.read.parquet(f"{HDFS__URI}/processed_data")
 
 df.printSchema()
-df.show()
 
 df = df.withColumn("pickup_hour", date_trunc("hour", col("tpep_pickup_datetime")))
 

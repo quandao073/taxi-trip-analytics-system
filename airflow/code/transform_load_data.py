@@ -74,18 +74,6 @@ spark = SparkSession.builder \
         .config('spark.jars.packages', 'org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.5') \
         .getOrCreate()
 
-lookup_df = spark.read.option("header", True).csv("/opt/airflow/code/taxi_zone_lookup.csv")
-
-pickup_lookup = lookup_df.withColumnRenamed("LocationID", "PULocationID") \
-                         .withColumnRenamed("Borough", "pickup_borough") \
-                         .withColumnRenamed("Zone", "pickup_zone") \
-                         .drop("service_zone")
-
-dropoff_lookup = lookup_df.withColumnRenamed("LocationID", "DOLocationID") \
-                          .withColumnRenamed("Borough", "dropoff_borough") \
-                          .withColumnRenamed("Zone", "dropoff_zone") \
-                          .drop("service_zone")
-
 # Đọc dữ liệu từ Kafka
 df = spark.readStream \
         .format("kafka") \
@@ -95,7 +83,7 @@ df = spark.readStream \
         .option("failOnDataLoss", "false") \
         .load()
 
-# Biến đổi dữ liệu
+# Biến đổi, làm sạch dữ liệu
 df_parsed = df.selectExpr("CAST(value AS STRING) as json_str") \
               .select(from_json(col("json_str"), schema).alias("data")) \
               .select("data.*")
@@ -132,10 +120,7 @@ valid_conditions = (
 df_valid = df_parsed.filter(valid_conditions)
 df_error = df_parsed.filter(~valid_conditions)
 
-df_valid = df_valid \
-        .join(broadcast(pickup_lookup), on="PULocationID", how="left") \
-        .join(broadcast(dropoff_lookup), on="DOLocationID", how="left")
-
+df_valid.printSchema()
 
 def write_to_redis(batch_df, batch_id):
     # redis_conn = Redis(connection_pool=REDIS_POOL)
@@ -213,7 +198,7 @@ query_hdfs_error = df_error.writeStream \
 query_redis = df_valid.writeStream \
     .foreachBatch(write_to_redis) \
     .outputMode("append") \
-    .trigger(processingTime="10 seconds") \
+    .trigger(processingTime="3 seconds") \
     .option("checkpointLocation", f"{HDFS__URI}/checkpoints/redis") \
     .start()
 
