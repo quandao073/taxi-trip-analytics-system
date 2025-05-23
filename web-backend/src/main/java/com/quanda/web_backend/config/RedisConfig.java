@@ -49,7 +49,7 @@ public class RedisConfig {
             MessageListenerAdapter adapter) {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(factory);
-        container.addMessageListener(adapter, new ChannelTopic("pickup-stats-channel"));
+        container.addMessageListener(adapter, new ChannelTopic("realtime-trip-channel"));
         return container;
     }
 
@@ -98,7 +98,8 @@ public class RedisConfig {
 //             MessageListenerAdapter adapter) {
 //         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
 //         container.setConnectionFactory(factory);
-//         container.addMessageListener(adapter, new ChannelTopic("pickup-stats-channel"));
+//         container.addMessageListener(adapter, new ChannelTopic("realtime-trip-channel"));
+//         System.out.println("✅ Redis listener container initialized and subscribed to channel: realtime-trip-channel");
 //         return container;
 //     }
 

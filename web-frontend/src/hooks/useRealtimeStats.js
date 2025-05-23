@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 
-export const usePickupStats = () => {
+export const useRealtimeStats = () => {
   const [timelineData, setTimelineData] = useState(() => {
     const stored = localStorage.getItem("pickupTimeline");
     if (stored) {
@@ -34,10 +34,10 @@ export const usePickupStats = () => {
       onConnect: () => {
         setConnected(true);
         setError(null);
-        stompClient.subscribe('/topic/pickup-stats', (message) => {
+        stompClient.subscribe('/topic/realtime-trip', (message) => {
           try {
             const payload = JSON.parse(message.body);
-
+            
             // Xử lý timestamp thành đối tượng Date
             const actualTimestamp = new Date(payload.timestamp);
             const predictedTimestamp = new Date(payload.predicted_timestamp);

@@ -345,8 +345,8 @@ services:
       - taxi-trip-records-network
 
   web-backend:
-    # image: quandao073/web-backend:v1.1
-    image: quandao073/web-backend:v1.4.1
+    image: quandao073/web-backend:v2.0.0
+    # image: quandao073/web-backend:v1.5.0
     container_name: web-backend
     ports:
       - "8089:8080"

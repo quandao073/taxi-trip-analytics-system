@@ -1,32 +1,36 @@
-import { usePickupStats } from '../hooks/usePickupStats';
-// import StatusIndicator from '../components/StatusIndicator';
-// import RealTimeTable from '../components/RealTimeTable';
+import { useRealtimeStats } from '../hooks/useRealtimeStats';
 import RealTimeChart from '../components/RealTimeChart';
-import '../css/Dashboard.css'
+import '../css/Dashboard.css';
+import { format } from 'date-fns';
+import TimeAnalyticsChart from '../components/TimeAnalyticsChart';
 
 export default function Dashboard() {
-  const { timelineData, connected, error } = usePickupStats();
+  const { timelineData, connected, error } = useRealtimeStats();
   console.log("Dashboard data: ", timelineData);
-  
+
+  const latestTime = timelineData.length > 0
+    ? new Date(timelineData[timelineData.length - 1].timestamp)
+    : null;
+
+  const formattedDate = latestTime
+    ? format(latestTime, 'dd/MM/yyyy')
+    : '---';
+
   return (
     <div className='dashboard-wrapper'>
-      {/* <h2 className='dashboard-realtime-header'>Dữ liệu thời gian thực</h2> */}
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between'}}>
         <h2 className='dashboard-realtime-header'>Dữ liệu thời gian thực</h2>
-        
       </div>
 
       <div className='dashboard-realtime-container'>
-        {/* <div className='realtime-table-container'>
-          <h3>Top 10 khu vực có số chuyến đi nhiều nhất</h3>
-          <RealTimeTable data={data} connected={connected} />
-        </div> */}
         <div className='realtime-chart-container'>
-          <h3>Biểu đồ số chuyến đi theo thời gian thực</h3>
+          <h3 style={{marginBottom:'20px' }}>Biểu đồ số chuyến đi theo thời gian thực ngày ({formattedDate})</h3>
           <RealTimeChart data={timelineData} />
         </div>
       </div>
-      {/* <StatusIndicator connected={connected} error={error} /> */}
+
+      <TimeAnalyticsChart />
+
     </div>
   );
 }

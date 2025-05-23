@@ -19,6 +19,7 @@ public class RedisSubscriber implements MessageListener {
     @Override
     public void onMessage(Message message, byte[] pattern) {
         String json = new String(message.getBody(), StandardCharsets.UTF_8);
-        messagingTemplate.convertAndSend("/topic/pickup-stats", json);
+        System.out.println("📩 Redis message received: " + json);
+        messagingTemplate.convertAndSend("/topic/realtime-trip", json);
     }
 }
