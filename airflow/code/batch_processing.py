@@ -54,13 +54,30 @@ df = df.withColumn("hour_label", format_string("%02d:00", col("hour"))) \
                                        .otherwise("Other")
                   ) \
        .withColumn("trip_distance_km", round(col("trip_distance") * 1.60934, 2)) \
+       .withColumn("trip_distance_mile", col("trip_distance")) \
        .withColumn("trip_duration_minutes",
                       round((unix_timestamp("tpep_dropoff_datetime") - unix_timestamp("tpep_pickup_datetime")) / 60, 2)) \
        .withColumn("trip_speed_mph", round((col("trip_distance") / (col("trip_duration_minutes") / 60)), 2)) \
+       .withColumn("trip_speed_kph", round(col("trip_speed_mph") * 1.60934, 2)) \
+       .withColumn("day_of_week", date_format(col("tpep_pickup_datetime"), "EEEE")) \
+       .withColumn("month_label", date_format(col("tpep_pickup_datetime"), "MM/yyyy"))
 
 # Loại bỏ dữ liệu bất thường
 df_processed = df.filter((col("trip_speed_mph") > 1) & (col("trip_speed_mph") < 70)) \
                  .filter(col("trip_distance") <= 100)
+
+df_processed.printSchema()
+
+# Phân tích dữ liệu theo tháng
+df_time_analytics = df_processed \
+    .groupBy("year", "month") \
+    .agg(
+        count("*").alias("trip_count"),
+        round(sum("total_amount"), 2).alias("total_revenue"),
+        round(avg("trip_distance_km"), 2).alias("avg_distance_km"),
+        round(avg("trip_duration_minutes"), 2).alias("avg_duration_minutes"),
+        round(avg("trip_speed_kph"), 2).alias("avg_speed_kph")
+    )
 
 # Lưu lại dữ liệu chuẩn
 df_processed.repartition("day").write \
@@ -68,12 +85,40 @@ df_processed.repartition("day").write \
     .mode("append") \
     .parquet(f"{HDFS__URI}/processed_data/")
 
-df_processed.printSchema()
-
 # lưu dữ liệu lên PostgreSQL
+db_properties = {
+    "user": POSTGRES__USERNAME, 
+    "password": POSTGRES__PASSWORD, 
+    "driver": "org.postgresql.Driver"
+}
+
 df_processed.write.jdbc(
     url=f"{POSTGRES__URI}/{POSTGRES__DATABASE}",
     table="fact_trips",
     mode="overwrite",
-    properties={"user": f"{POSTGRES__USERNAME}", "password": f"{POSTGRES__PASSWORD}", "driver": "org.postgresql.Driver"}
+    properties=db_properties
 )
+
+df_time_analytics.write.jdbc(
+    url=f"{POSTGRES__URI}/{POSTGRES__DATABASE}",
+    table="analyze_by_time",
+    mode="append",
+    properties=db_properties
+)
+
+# summary_by_route = df_processed \
+#     .groupBy("year", "month", "pickup_zone", "dropoff_zone") \
+#     .agg(
+#         count("*").alias("trip_count"),
+#         round(avg("trip_distance_km"), 2).alias("avg_distance_km"),
+#         round(avg("trip_duration_minutes"), 2).alias("avg_duration_minutes"),
+#         round(avg("total_amount"), 2).alias("avg_fare"),
+#         round(sum("total_amount"), 2).alias("total_revenue")
+#     )
+
+# summary_by_route.write.jdbc(
+#     url=f"{POSTGRES__URI}/{POSTGRES__DATABASE}",
+#     table="analyze_by_routes",
+#     mode="append",
+#     properties=db_properties
+# )

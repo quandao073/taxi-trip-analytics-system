@@ -4,9 +4,9 @@ from pyspark.sql.types import StructType, StructField, StringType, DoubleType, I
 from pyspark.ml import PipelineModel
 from datetime import timedelta
 import os, time, json
-# from redis import Redis
+from redis import Redis
 from redis.sentinel import Sentinel
-# from redis.connection import ConnectionPool
+from redis.connection import ConnectionPool
 
 # Các biến môi trường
 DATA_INGESTION__TAXI_TYPE           = os.environ.get("DATA_INGESTION__TAXI_TYPE", "yellow")
@@ -18,15 +18,15 @@ REDIS__SENTINEL_PORT                = int(os.environ.get("REDIS__SENTINEL_PORT",
 REDIS__MASTER_NAME                  = os.environ.get("REDIS__MASTER_NAME", "mymaster")
 REDIS__PASSWORD                     = os.environ.get("REDIS__PASSWORD", "quanda")
 
-# REDIS__HOST='redis'
-# REDIS__PORT=6379
-# REDIS_POOL = ConnectionPool(
-#     host=REDIS__HOST,
-#     port=int(REDIS__PORT),
-#     # password=REDIS__PASSWORD,
-#     max_connections=10,
-#     decode_responses=True
-# )
+REDIS__HOST='redis'
+REDIS__PORT=6379
+REDIS_POOL = ConnectionPool(
+    host=REDIS__HOST,
+    port=int(REDIS__PORT),
+    # password=REDIS__PASSWORD,
+    max_connections=10,
+    decode_responses=True
+)
 
 sentinel = Sentinel(
     [(REDIS__SENTINEL_HOST, REDIS__SENTINEL_PORT)],
@@ -123,8 +123,8 @@ df_error = df_parsed.filter(~valid_conditions)
 df_valid.printSchema()
 
 def write_to_redis(batch_df, batch_id):
-    # redis_conn = Redis(connection_pool=REDIS_POOL)
-    redis_conn = get_redis_connection()
+    redis_conn = Redis(connection_pool=REDIS_POOL)
+    # redis_conn = get_redis_connection()
 
     try:
         timestamp_df = batch_df.select(max("tpep_pickup_datetime").alias("max_pickup_time")).collect()
@@ -159,7 +159,7 @@ def write_to_redis(batch_df, batch_id):
 
             predicted_time = (current_pickup_time + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S')
 
-            redis_conn.publish("pickup-stats-channel", json.dumps({
+            redis_conn.publish("realtime-trip-channel", json.dumps({
                 "timestamp": formatted_time,
                 "trip_count": new_total,
                 "predicted_timestamp": predicted_time,
