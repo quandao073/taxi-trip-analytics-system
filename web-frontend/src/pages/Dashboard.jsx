@@ -3,6 +3,7 @@ import RealTimeChart from '../components/RealTimeChart';
 import '../css/Dashboard.css';
 import { format } from 'date-fns';
 import TimeAnalyticsChart from '../components/TimeAnalyticsChart';
+import RouteAnalyticsTable from '../components/RouteAnalyticsTable';
 
 export default function Dashboard() {
   const { timelineData, connected, error } = useRealtimeStats();
@@ -30,6 +31,8 @@ export default function Dashboard() {
       </div>
 
       <TimeAnalyticsChart />
+
+      <RouteAnalyticsTable />
 
     </div>
   );

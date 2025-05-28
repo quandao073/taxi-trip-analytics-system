@@ -13,7 +13,6 @@ export default function Home() {
         <ServiceSection />
         <BookingSection />
         <TaxiCollection />
-        <Footer />
     </div>
     
   );

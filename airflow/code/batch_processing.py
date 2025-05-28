@@ -79,6 +79,16 @@ df_time_analytics = df_processed \
         round(avg("trip_speed_kph"), 2).alias("avg_speed_kph")
     )
 
+df_route_analytics = df_processed \
+    .groupBy("year", "month", "pickup_zone", "dropoff_zone") \
+    .agg(
+        count("*").alias("trip_count"),
+        round(avg("trip_distance_km"), 2).alias("avg_distance_km"),
+        round(avg("trip_duration_minutes"), 2).alias("avg_duration_minutes"),
+        round(avg("fare_amount"), 2).alias("avg_fare"),
+        round(sum("total_amount"), 2).alias("total_revenue")
+    )
+
 # Lưu lại dữ liệu chuẩn
 df_processed.repartition("day").write \
     .partitionBy("year", "month") \
@@ -106,19 +116,9 @@ df_time_analytics.write.jdbc(
     properties=db_properties
 )
 
-# summary_by_route = df_processed \
-#     .groupBy("year", "month", "pickup_zone", "dropoff_zone") \
-#     .agg(
-#         count("*").alias("trip_count"),
-#         round(avg("trip_distance_km"), 2).alias("avg_distance_km"),
-#         round(avg("trip_duration_minutes"), 2).alias("avg_duration_minutes"),
-#         round(avg("total_amount"), 2).alias("avg_fare"),
-#         round(sum("total_amount"), 2).alias("total_revenue")
-#     )
-
-# summary_by_route.write.jdbc(
-#     url=f"{POSTGRES__URI}/{POSTGRES__DATABASE}",
-#     table="analyze_by_routes",
-#     mode="append",
-#     properties=db_properties
-# )
+df_route_analytics.write.jdbc(
+    url=f"{POSTGRES__URI}/{POSTGRES__DATABASE}",
+    table="analyze_by_routes",
+    mode="append",
+    properties=db_properties
+)

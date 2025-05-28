@@ -7,7 +7,9 @@ export default function Header() {
     return (
         <header className="header">
             <div className="header__container">
-                <div className="header__logo">QuanDA</div>
+                <NavLink to="/" className="header__logo" style={{ textDecoration: 'none', color: 'inherit' }}>
+                    QuanDA
+                </NavLink>
 
                 <nav className="header__nav">
                     <NavLink

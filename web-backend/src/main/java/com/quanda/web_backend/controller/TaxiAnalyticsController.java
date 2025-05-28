@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/analytics")
@@ -37,16 +38,25 @@ public class TaxiAnalyticsController {
         return ResponseEntity.ok(result);
     }
 
-    // // Get route-based analytics
-    // @GetMapping("/routes")
-    // public ResponseEntity<List<AnalyzeByRoutes>> getRouteAnalytics(
-    //         @RequestParam(required = false) Integer year,
-    //         @RequestParam(required = false) Integer month,
-    //         @RequestParam(required = false) String zone) {
+    // Get route-based analytics
+    @GetMapping("/routes")
+    public ResponseEntity<List<AnalyzeByRoutes>> getRouteAnalytics(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month,
+            @RequestParam(required = false) String zone) {
 
-    //     List<AnalyzeByRoutes> result = analyticsService.getRouteAnalytics(year, month, zone);
-    //     return ResponseEntity.ok(result);
-    // }
+        List<AnalyzeByRoutes> result = analyticsService.getRouteAnalytics(year, month, zone);
+        return ResponseEntity.ok(result);
+    }
 
+    @GetMapping("/routes/top")
+    public ResponseEntity<Map<String, List<AnalyzeByRoutes>>> getTopRoutesByZone(
+            @RequestParam Integer year,
+            @RequestParam Integer month,
+            @RequestParam String zone) {
+
+        Map<String, List<AnalyzeByRoutes>> result = analyticsService.getTopRoutesByZone(year, month, zone);
+        return ResponseEntity.ok(result);
+    }
 
 }

@@ -8,8 +8,8 @@ const TimeAnalyticsChart = () => {
   const [chartData, setChartData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // const backendURI = 'http://localhost:8089'
-  const backendURI = 'http://api-quanda.web-backend.local'
+  const backendURI = 'http://localhost:8089'
+  // const backendURI = 'http://api-quanda.web-backend.local'
 
   // Tự động fetch data khi thay đổi khoảng thời gian
   useEffect(() => {
@@ -77,7 +77,7 @@ const TimeAnalyticsChart = () => {
 
   return (
     <div style={{margin: '0 auto' }}>
-      <h2 style={{ fontSize: '24px', marginBottom: '24px', color: '#2c3e50' }}>
+      <h2 style={{ fontSize: '24px', marginBottom: '24px', color: '#2c3e50', fontWeight: '700' }}>
         Thống kê dữ liệu theo tháng
       </h2>
 
