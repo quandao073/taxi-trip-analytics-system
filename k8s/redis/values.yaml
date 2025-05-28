@@ -1,4 +1,4 @@
-architecture: replication
+architecture: standalone
 
 auth:
   enabled: true
@@ -9,14 +9,3 @@ master:
     enabled: true
     existingClaim: redis-pvc
     size: 3Gi
-
-replica:
-  replicaCount: 3
-  persistence:
-    enabled: true
-    existingClaim: redis-pvc
-    size: 3Gi
-
-sentinel:
-  enabled: true
-  replicas: 3

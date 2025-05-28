@@ -1,9 +1,5 @@
 executor: "LocalExecutor"
 
-# envFrom:
-#   - configMapRef:
-#       name: airflow-env-vars
-
 env:
   - name: DATA_INGESTION__TAXI_TYPE
     value: "yellow"
@@ -16,17 +12,23 @@ env:
   - name: KAFKA__BOOTSTRAP_SERVERS
     value: "kafka.bigdata.svc.cluster.local:9092"
   - name: SPARK_STREAMING__TRIGGER_TIME
-    value: "5 minutes"
+    value: "3 minutes"
   - name: HDFS__URI
     value: "hdfs://hadoop-hadoop-hdfs-nn:9000"
-  - name: REDIS__SENTINEL_HOST
-    value: "redis-sentinel.bigdata.svc.cluster.local"
-  - name: REDIS__SENTINEL_PORT
-    value: "26379"
-  - name: REDIS__MASTER_NAME
-    value: "mymaster"
+  - name: REDIS__HOST
+    value: "redis-master.bigdata.svc.cluster.local"
+  - name: REDIS__PORT
+    value: "6379"
   - name: REDIS__PASSWORD
     value: "quanda"
+  # - name: REDIS__SENTINEL_HOST
+  #   value: "redis-sentinel.bigdata.svc.cluster.local"
+  # - name: REDIS__SENTINEL_PORT
+  #   value: "26379"
+  # - name: REDIS__MASTER_NAME
+  #   value: "mymaster"
+  # - name: REDIS__PASSWORD
+  #   value: "quanda"
 
 
 images:
@@ -54,28 +56,43 @@ webserver:
   extraVolumeMounts:
     - name: airflow-code
       mountPath: /opt/airflow/code
+    - name: airflow-data-source
+      mountPath: /tmp/data
   extraVolumes:
     - name: airflow-code
       persistentVolumeClaim:
         claimName: airflow-code-pvc
+    - name: airflow-data-source
+      persistentVolumeClaim:
+        claimName: airflow-datasource-pvc
 
 scheduler:
   extraVolumeMounts:
     - name: airflow-code
       mountPath: /opt/airflow/code
+    - name: airflow-data-source
+      mountPath: /tmp/data
   extraVolumes:
     - name: airflow-code
       persistentVolumeClaim:
         claimName: airflow-code-pvc
+    - name: airflow-data-source
+      persistentVolumeClaim:
+        claimName: airflow-datasource-pvc
 
 triggerer:
   extraVolumeMounts:
     - name: airflow-code
       mountPath: /opt/airflow/code
+    - name: airflow-data-source
+      mountPath: /tmp/data
   extraVolumes:
     - name: airflow-code
       persistentVolumeClaim:
         claimName: airflow-code-pvc
+    - name: airflow-data-source
+      persistentVolumeClaim:
+        claimName: airflow-datasource-pvc
 
 dags:
   persistence:
@@ -85,7 +102,7 @@ dags:
 logs:
   persistence:
     enabled: true
-    size: 20Gi
+    size: 5Gi
     existingClaim: airflow-logs-pvc
 
 postgresql:

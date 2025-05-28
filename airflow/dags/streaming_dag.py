@@ -31,9 +31,9 @@ def get_or_create_time_var():
 
 @dag(
     default_args=default_args,
-    schedule_interval=None,
-    # schedule_interval=timedelta(minutes=3),
     start_date=datetime(2025, 4, 16),
+    schedule_interval=None,
+    # schedule_interval=timedelta(hours=1),
     catchup=False,
     tags=["streaming_data"]
 )
@@ -78,13 +78,13 @@ def streaming_hourly_dag():
         )
     )
 
-    load_stream_data = BashOperator(
-        task_id="load_stream_data",
+    transform_load_data = BashOperator(
+        task_id="transform_load_data",
         bash_command="spark-submit /opt/airflow/code/transform_load_data.py",
     )
 
     next_time = increase_time_var()
 
-    time_params >> [extract_data, load_stream_data] >> next_time
+    time_params >> [extract_data, transform_load_data] >> next_time
 
 streaming_dag = streaming_hourly_dag()

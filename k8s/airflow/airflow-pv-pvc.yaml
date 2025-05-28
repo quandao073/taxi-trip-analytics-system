@@ -98,7 +98,7 @@ metadata:
   name: airflow-logs-pv
 spec:
   capacity:
-    storage: 20Gi
+    storage: 5Gi
   accessModes:
     - ReadWriteMany
   nfs:
@@ -117,5 +117,5 @@ spec:
     - ReadWriteMany
   resources:
     requests:
-      storage: 20Gi
+      storage: 5Gi
   storageClassName: nfs-storage

@@ -6,16 +6,10 @@ metadata:
 data:
   application.properties: |
     spring.application.name=web-backend
-    spring.redis.sentinel.master=mymaster
-    spring.redis.sentinel.nodes=redis-sentinel-node-0.redis-sentinel-headless.bigdata.svc.cluster.local:26379,redis-sentinel-node-1.redis-sentinel-headless.bigdata.svc.cluster.local:26379,redis-sentinel-node-2.redis-sentinel-headless.bigdata.svc.cluster.local:26379
+    spring.redis.host=redis-master.bigdata.svc.cluster.local
+    spring.redis.port=6379
     spring.redis.password=quanda
-    spring.redis.client-type=lettuce
-    spring.redis.timeout=60000
-    spring.redis.lettuce.pool.max-active=8
-    spring.redis.lettuce.pool.max-idle=8
-    spring.redis.lettuce.pool.min-idle=0
-    spring.redis.lettuce.pool.max-wait=-1ms
-
+    
     spring.data.rest.base-path=/api
     allowed.origins=http://quanda.web-frontend.local
 
@@ -26,7 +20,7 @@ data:
     spring.datasource.username=quanda
     spring.datasource.password=quanda
     spring.datasource.driver-class-name=org.postgresql.Driver
-    
+
     spring.jpa.hibernate.ddl-auto=none
     spring.jpa.show-sql=false
     spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect

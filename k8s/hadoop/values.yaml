@@ -52,7 +52,7 @@ yarn:
     resources:
       requests:
         memory: "256Mi"
-        cpu: "10m"
+        cpu: "100m"
       limits:
         memory: "1024Mi"
         cpu: "1000m"
@@ -81,10 +81,10 @@ persistence:
     enabled: true
     storageClass: nfs-hadoop-storage
     accessMode: ReadWriteOnce
-    size: 30Gi
+    size: 20Gi
 
   dataNode:
     enabled: true
     storageClass: nfs-hadoop-storage
     accessMode: ReadWriteOnce
-    size: 20Gi
+    size: 40Gi

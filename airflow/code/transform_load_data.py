@@ -5,7 +5,6 @@ from pyspark.ml import PipelineModel
 from datetime import timedelta
 import os, time, json
 from redis import Redis
-from redis.sentinel import Sentinel
 from redis.connection import ConnectionPool
 
 # Các biến môi trường
@@ -13,33 +12,17 @@ DATA_INGESTION__TAXI_TYPE           = os.environ.get("DATA_INGESTION__TAXI_TYPE"
 KAFKA__BOOTSTRAP_SERVERS            = os.environ.get("KAFKA__BOOTSTRAP_SERVERS", "kafka:9092")
 SPARK_STREAMING__TRIGGER_TIME       = os.environ.get("SPARK_STREAMING__TRIGGER_TIME", "10 seconds")
 HDFS__URI                           = os.environ.get("HDFS__URI", "hdfs://hadoop-hadoop-hdfs-nn:9000")
-REDIS__SENTINEL_HOST                = os.environ.get("REDIS__SENTINEL_HOST", "redis-sentinel.bigdata.svc.cluster.local")
-REDIS__SENTINEL_PORT                = int(os.environ.get("REDIS__SENTINEL_PORT", "26379"))
-REDIS__MASTER_NAME                  = os.environ.get("REDIS__MASTER_NAME", "mymaster")
 REDIS__PASSWORD                     = os.environ.get("REDIS__PASSWORD", "quanda")
 
-REDIS__HOST='redis'
-REDIS__PORT=6379
+REDIS__HOST                         = os.environ.get("REDIS__HOST", "redis-master.bigdata.svc.cluster.local")
+REDIS__PORT                         = os.environ.get("REDIS__PORT", "6379")
+
 REDIS_POOL = ConnectionPool(
     host=REDIS__HOST,
     port=int(REDIS__PORT),
-    # password=REDIS__PASSWORD,
-    max_connections=10,
+    password=REDIS__PASSWORD,
     decode_responses=True
 )
-
-sentinel = Sentinel(
-    [(REDIS__SENTINEL_HOST, REDIS__SENTINEL_PORT)],
-    sentinel_kwargs={"password": REDIS__PASSWORD},
-    socket_timeout=1
-)
-
-def get_redis_connection():
-    return sentinel.master_for(
-        REDIS__MASTER_NAME,
-        password=REDIS__PASSWORD,
-        decode_responses=True
-    )
 
 # Định nghĩa schema
 schema = StructType(
@@ -47,13 +30,13 @@ schema = StructType(
         StructField("VendorID", IntegerType(), True),
         StructField("tpep_pickup_datetime", TimestampType(), True),
         StructField("tpep_dropoff_datetime", TimestampType(), True),
-        StructField("passenger_count", LongType(), True),
+        StructField("passenger_count", IntegerType(), True),
         StructField("trip_distance", DoubleType(), True),
         StructField("RatecodeID", DoubleType(), True),
         StructField("store_and_fwd_flag", StringType(), True),
         StructField("PULocationID", IntegerType(), True),
         StructField("DOLocationID", IntegerType(), True),
-        StructField("payment_type", LongType(), True),
+        StructField("payment_type", IntegerType(), True),
         StructField("fare_amount", DoubleType(), True),
         StructField("extra", DoubleType(), True),
         StructField("mta_tax", DoubleType(), True),

@@ -139,7 +139,7 @@ systemctl restart nginx
 
 
 ## 5. Cài đặt và cấu hình NFS Server 
-### Thực hiện trên database server
+### Thực hiện trên nfs-server
 ```sh
 sudo apt install nfs-server -y
 
@@ -166,18 +166,26 @@ sudo apt install nfs-common -y
 ---
 
 ## 6. Cài đặt Prometheus và Grafana
+### Cài đặt Prometheus
+Thực hiện trên k8s-master-1
+```sh
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 
+helm install quanda prometheus-community/kube-prometheus-stack --namespace monitoring --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.accessModes[0]=ReadWriteOnce --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=10Gi --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=nfs-storage
+```
+
+Thêm các ingress để truy cập được vào giao diện của Prometheus và Grafana
 
 ---
 
 ## 7. Backup hệ thống với Velero
 
 ### Docker Compose MinIO (trên `database-server`)
-```yaml
+```yml
 version: '3'
 services:
   minio:
-    image: minio/minio
+    image: minio/minio:RELEASE.2022-12-12T19-27-27Z
     container_name: minio
     ports:
       - "9000:9000"
@@ -192,9 +200,9 @@ services:
 
 ### Cài Velero client (trên k8s-master hoặc kubectl shell trong Rancher)
 ```bash
-wget https://github.com/vmware-tanzu/velero/releases/download/v1.15.2/velero-v1.15.2-linux-amd64.tar.gz
-tar -xvf velero-v1.15.2-linux-amd64.tar.gz
-sudo mv velero-v1.15.2-linux-amd64/velero /usr/local/bin
+wget https://github.com/vmware-tanzu/velero/releases/download/v1.16.1/velero-v1.16.1-linux-amd64.tar.gz
+tar -xvf velero-v1.16.1-linux-amd64.tar.gz
+sudo mv velero-v1.16.1-linux-amd64/velero /usr/local/bin
 ```
 
 ### Cài Velero sử dụng MinIO
@@ -207,7 +215,7 @@ EOF
 
 velero install \
   --provider aws \
-  --plugins velero/velero-plugin-for-aws:v1.5.2 \
+  --plugins velero/velero-plugin-for-aws:v1.11.0 \
   --bucket <bucket_name> \
   --secret-file ./credentials-velero \
   --use-node-agent \
