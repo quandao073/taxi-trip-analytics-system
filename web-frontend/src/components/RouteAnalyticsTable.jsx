@@ -10,8 +10,8 @@ const RouteAnalyticsTable = () => {
   const [isLoading, setIsLoading] = useState(false);
   const debounceTimeout = useRef(null);
 
-  const backendURI = 'http://localhost:8089';
-  // const backendURI = 'http://api-quanda.web-backend.local'
+  // const backendURI = 'http://localhost:8089';
+  const backendURI = 'http://api-quanda.web-backend.local'
 
   useEffect(() => {
     if (!selectedZone) return;
@@ -112,7 +112,7 @@ const RouteAnalyticsTable = () => {
               <th style={thStyle}>Điểm đón khách</th>
               <th style={thStyle}>Điểm trả khách</th>
               <th style={thStyle}>Số chuyến</th>
-              <th style={thStyle}>Doanh thu</th>
+              <th style={thStyle}>Doanh thu ($)</th>
               <th style={thStyle}>Khoảng cách TB (km)</th>
               <th style={thStyle}>Thời gian TB (phút)</th>
             </tr>
@@ -136,7 +136,7 @@ const RouteAnalyticsTable = () => {
                     color: item.dropoffZone === selectedZone ? '#2c7be5' : 'inherit'
                   }}>{item.dropoffZone}</td>
                   <td style={tdStyle}>{item.tripCount}</td>
-                  <td style={tdStyle}>{item.totalRevenue.toFixed(2)}$</td>
+                  <td style={tdStyle}>{item.totalRevenue.toFixed(2)}</td>
                   <td style={tdStyle}>{item.avgDistanceKm}</td>
                   <td style={tdStyle}>{item.avgDurationMinutes}</td>
                   <td style={tdStyle}>{item.avgSpeedKph}</td>

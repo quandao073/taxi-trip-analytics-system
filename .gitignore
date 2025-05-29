@@ -1,8 +1,6 @@
-/spark/jars
-/spark/checkpoint
+/spark
 /data/
 data_ingestion/fast-api/data/
-hadoop/etc/hadoop/
 /airflow/config/
 /airflow/logs/
 /airflow/plugins/

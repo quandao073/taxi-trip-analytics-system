@@ -8,8 +8,8 @@ const TimeAnalyticsChart = () => {
   const [chartData, setChartData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const backendURI = 'http://localhost:8089'
-  // const backendURI = 'http://api-quanda.web-backend.local'
+  // const backendURI = 'http://localhost:8089'
+  const backendURI = 'http://api-quanda.web-backend.local'
 
   // Tự động fetch data khi thay đổi khoảng thời gian
   useEffect(() => {
