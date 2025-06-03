@@ -29,7 +29,7 @@ def get_or_create_time_var():
 @dag(
     default_args=default_args,
     schedule_interval=None,
-    start_date=datetime(2025, 4, 16),
+    start_date=datetime(2023, 1, 1),
     catchup=False,
     tags=["monthly_batch_processing"]
 )

@@ -180,7 +180,6 @@ const TimeAnalyticsChart = () => {
               yAxisId="right"
               orientation="right"
               label={{
-                value: 'Thông số TB (km / phút / km/h)',
                 angle: 0,
                 position: 'top',
                 offset: 20
@@ -200,7 +199,7 @@ const TimeAnalyticsChart = () => {
             <Bar
               yAxisId="left"
               dataKey="revenueInMillions"
-              name="Doanh thu"
+              name="Doanh thu ($)"
               fill="#8884d8"
               radius={[4, 4, 0, 0]}
               barSize={30}
@@ -219,7 +218,7 @@ const TimeAnalyticsChart = () => {
               yAxisId="right"
               type="monotone"
               dataKey="avgDistanceKm"
-              name="Quãng đường TB"
+              name="Quãng đường TB (km)"
               stroke="#ff7300"
               strokeWidth={2}
               dot={{ r: 4, fill: '#ff7300' }}
@@ -228,7 +227,7 @@ const TimeAnalyticsChart = () => {
               yAxisId="right"
               type="monotone"
               dataKey="avgDurationMinutes"
-              name="Thời gian TB"
+              name="Thời gian TB (phút)"
               stroke="#387908"
               strokeWidth={2}
               dot={{ r: 4, fill: '#387908' }}
@@ -237,7 +236,7 @@ const TimeAnalyticsChart = () => {
               yAxisId="right"
               type="monotone"
               dataKey="avgSpeedKph"
-              name="Tốc độ TB"
+              name="Tốc độ TB (km/h)"
               stroke="#a0522d"
               strokeWidth={2}
               dot={{ r: 4, fill: '#a0522d' }}

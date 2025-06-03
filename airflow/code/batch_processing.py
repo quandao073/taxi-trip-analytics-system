@@ -24,6 +24,7 @@ df.printSchema()
 
 # Thêm thông tin về địa điểm
 lookup_df = spark.read.option("header", True).csv(f"{HDFS__URI}/resources/taxi_zone_lookup.csv")
+lookup_df = lookup_df.cache()
 pickup_lookup = lookup_df.withColumnRenamed("LocationID", "PULocationID") \
                          .withColumnRenamed("Borough", "pickup_borough") \
                          .withColumnRenamed("Zone", "pickup_zone") \
@@ -90,7 +91,7 @@ df_route_analytics = df_processed \
     )
 
 # Lưu lại dữ liệu chuẩn
-df_processed.repartition("day").write \
+df_processed.write \
     .partitionBy("year", "month") \
     .mode("append") \
     .parquet(f"{HDFS__URI}/processed_data/")
@@ -99,7 +100,9 @@ df_processed.repartition("day").write \
 db_properties = {
     "user": POSTGRES__USERNAME, 
     "password": POSTGRES__PASSWORD, 
-    "driver": "org.postgresql.Driver"
+    "driver": "org.postgresql.Driver",
+    "batchsize": "50000",
+    "rewriteBatchedInserts": "true"
 }
 
 df_processed.write.jdbc(
@@ -122,3 +125,5 @@ df_route_analytics.write.jdbc(
     mode="append",
     properties=db_properties
 )
+
+lookup_df.unpersist()

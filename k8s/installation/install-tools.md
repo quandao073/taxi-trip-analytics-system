@@ -169,6 +169,8 @@ sudo apt install nfs-common -y
 ### Cài đặt Prometheus
 Thực hiện trên k8s-master-1
 ```sh
+kubectl create ns monitoring
+
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 
 helm install quanda prometheus-community/kube-prometheus-stack --namespace monitoring --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.accessModes[0]=ReadWriteOnce --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=10Gi --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=nfs-storage
@@ -180,7 +182,7 @@ Thêm các ingress để truy cập được vào giao diện của Prometheus v
 
 ## 7. Backup hệ thống với Velero
 
-### Docker Compose MinIO (trên `database-server`)
+### Docker Compose MinIO (trên `nfs-server`)
 ```yml
 version: '3'
 services:

@@ -6,7 +6,7 @@ env:
   - name: DATA_INGESTION__API_HOST
     value: "http://data-ingestion-api-server.bigdata.svc.cluster.local:5000"
   - name: DATA_INGESTION__SPEED
-    value: "2.0"
+    value: "1.5"
   - name: DATA_INGESTION__QUERY_PAGE_SIZE
     value: "20"
   - name: KAFKA__BOOTSTRAP_SERVERS
@@ -21,15 +21,14 @@ env:
     value: "6379"
   - name: REDIS__PASSWORD
     value: "quanda"
-  # - name: REDIS__SENTINEL_HOST
-  #   value: "redis-sentinel.bigdata.svc.cluster.local"
-  # - name: REDIS__SENTINEL_PORT
-  #   value: "26379"
-  # - name: REDIS__MASTER_NAME
-  #   value: "mymaster"
-  # - name: REDIS__PASSWORD
-  #   value: "quanda"
-
+  - name: POSTGRES__URI
+    value: "jdbc:postgresql://postgres-db.bigdata.svc.cluster.local:5432"
+  - name: POSTGRES__USERNAME
+    value: "quanda"
+  - name: POSTGRES__PASSWORD
+    value: "quanda"
+  - name: POSTGRES__DATABASE
+    value: "taxi_trip_db"
 
 images:
   airflow:

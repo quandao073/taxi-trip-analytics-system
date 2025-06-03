@@ -1,0 +1,191 @@
+redis-cli -h redis-sentinel.bigdata.svc.cluster.local -p 26379 -a quanda
+
+SENTINEL get-master-addr-by-name mymaster
+
+redis-cli -h redis-sentinel-node-0.redis-sentinel-headless.bigdata.svc.cluster.local -p 6379 -a quanda
+
+
+volumeMounts:
+            - mountPath: /run/src/main/resources/application.properties
+              name: ecommerce-backend-application-properties-config-volume
+              subPath: application.properties
+
+
+volumes:
+        - configMap:
+            defaultMode: 420
+            name: ecommerce-backend-application-properties-configmap
+          name: ecommerce-backend-application-properties-config-volume
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+Kafka
+
+helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+helm repo update
+
+
+# cài nfs provisioner tu dong tao pvc
+
+helm install nfs-kafka-storage nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+  --namespace kube-system \
+  --set nfs.server=192.168.164.206 \
+  --set nfs.path=/A/kafka \
+  --set storageClass.name=nfs-kafka-storage \
+  --set storageClass.defaultClass=false \
+  --set storageClass.accessModes={ReadWriteOnce} \
+  --set storageClass.reclaimPolicy=Delete
+
+# lenh update thay doi sang Retain (Giu lai du lieu sau khi xoa pvc)
+
+helm upgrade nfs-kafka-storage nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+  --namespace kube-system \
+  --set nfs.server=192.168.164.206 \
+  --set nfs.path=/A/kafka \
+  --set storageClass.name=nfs-kafka-storage \
+  --set storageClass.defaultClass=false \
+  --set storageClass.accessModes={ReadWriteOnce} \
+  --set storageClass.reclaimPolicy=Retain
+
+----------------------------------------------------------------------------------------------------------------------------------
+1. Install Airflow
+
+helm install nfs-airflow-storage nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+  --namespace kube-system \
+  --set nfs.server=192.168.164.206 \
+  --set nfs.path=/A/airflow \
+  --set storageClass.name=nfs-airflow-storage \
+  --set storageClass.defaultClass=false \
+  --set storageClass.accessModes={ReadWriteMany} \
+  --set storageClass.reclaimPolicy=Delete
+
+helm repo add apache-airflow https://airflow.apache.org
+
+cd airflow/
+helm install airflow apache-airflow/airflow -n bigdata -f values.yaml
+
+helm upgrade airflow apache-airflow/airflow -n bigdata -f values.yaml
+
+helm uninstall airflow -n bigdata
+
+chmod -R 777 /A/airflow/
+chown -R nobody:nogroup /A/airflow/
+
+spark-submit /opt/airflow/code/write_data.py 2023 5
+
+spark-submit --packages org.postgresql:postgresql:42.7.5 /opt/airflow/code/quick_analytics_job.py
+
+
+airflow dags trigger -e 2022-02-01 batch_processing_dag
+
+airflow dags trigger -e "2021-11-01T01:30:00" batch_processing_dag
+
+airflow dags list-runs -d batch_processing_dag
+
+airflow dags delete-run --dag-id batch_processing_dag --run-id manual__2021-11-02T00:00:00+00:00
+
+----------------------------------------------------------------------------------------------------------------------------------
+
+- copy code to dags and code folder
+
+2. Install Hadoop
+helm repo add pfisterer-hadoop https://pfisterer.github.io/apache-hadoop-helm/
+
+cd hadoop/
+helm install hadoop pfisterer-hadoop/hadoop --namespace bigdata -f values.yaml
+
+helm upgrade hadoop pfisterer-hadoop/hadoop --namespace bigdata -f values.yaml
+
+helm uninstall hadoop --namespace bigdata
+
+
+helm install nfs-hadoop-storage nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+  --namespace kube-system \
+  --set nfs.server=192.168.164.206 \
+  --set nfs.path=/B/hadoop \
+  --set storageClass.name=nfs-hadoop-storage \
+  --set storageClass.defaultClass=false \
+  --set storageClass.accessModes={ReadWriteOnce} \
+  --set storageClass.reclaimPolicy=Delete
+
+----------------------------------------------------------------------------------------------------------------------------------
+3. Redis
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+cd redis/
+
+helm install redis bitnami/redis --values values.yaml --namespace bigdata
+
+helm uninstall redis --namespace bigdata
+
+-- move to web backend shell
+	apk update
+	apk add redis
+	redis-cli -h redis-sentinel.bigdata.svc.cluster.local -p 26379 -a quanda
+	SENTINEL get-master-addr-by-name mymaster
+	exit
+	redis-cli -h redis-sentinel-node-0.redis-sentinel-headless.bigdata.svc.cluster.local -p 6379 -a quanda
+
+	
+SET total_trips 12345
+
+----------------------------------------------------------------------------------------------------------------------------------
+4. Spark Cluster
+
+cd spark/
+helm install spark bitnami/spark --values values.yaml --namespace bigdata
+helm upgrade spark bitnami/spark -f values.yaml -n bigdata
+
+helm uninstall spark -n bigdata
+
+spark://spark-master-svc.bigdata.svc.cluster.local:7077
+
+
+----------------------------------------------------------------------------------------------------------------------------------
+
+5. PostgreSQL
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+cd postgreSQL/
+helm install postgresql-db bitnami/postgresql --values values.yaml --namespace bigdata
+
+helm uninstall postgresql-db -n bigdata
+
+
+psql -U quanda -d taxi_trip_db
+
+doi recover du lieu roi lam tiep
+
+----------------------------------------------------------------------------------------------------------------------------------
+
+6. Superset
+
+cd superset/
+helm install superset bitnami/superset --values values.yaml --namespace bigdata
+
+helm uninstall superset -n bigdata
+
+superset.bigdata.svc.cluster.local
+
+connect to PostgreSQL: 
+postgresql+psycopg2://quanda:quanda@postgresql-db.bigdata.svc.cluster.local:5432/taxi_trip_db
+
+helm install nfs-superset-storage nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
+  --namespace kube-system \
+  --set nfs.server=192.168.164.206 \
+  --set nfs.path=/A/superset \
+  --set storageClass.name=nfs-superset-storage \
+  --set storageClass.defaultClass=false \
+  --set storageClass.accessModes={ReadWriteMany} \
+  --set storageClass.reclaimPolicy=Delete
+
+
+----------------------------------------------------------------------------------------------------------------------------------
+
+
+kubeadm join 192.168.164.201:6443 --token v67jwx.wq9o3sifneya0fed \
+        --discovery-token-ca-cert-hash sha256:ee2b784c93b1561b10ddbe813ba212fa55cf931054868f741677f5556563ae09
+
