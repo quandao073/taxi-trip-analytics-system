@@ -11,6 +11,14 @@ primary:
     existingClaim: postgres-db-pvc
     size: 20Gi
     storageClass: nfs-storage
+  
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+    limits:
+      cpu: 1500m
+      memory: 2Gi
 
 volumePermissions:
   enabled: true

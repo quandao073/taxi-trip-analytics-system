@@ -1,6 +1,11 @@
 global:
   storageClass: nfs-superset-storage
 
+image:
+  registry: docker.io
+  repository: bitnami/superset
+  tag: 4.1.2-debian-12-r6
+
 auth:
   username: quanda
   password: quanda

@@ -112,6 +112,8 @@ Khởi động containerd
 sudo systemctl restart containerd
 
 sudo systemctl enable containerd
+
+sudo systemctl status containerd
 ```
 
 Thêm kho lưu trữ Kubernetes
@@ -158,7 +160,7 @@ sudo systemctl restart kubelet
 ```sh
 sudo kubeadm init --control-plane-endpoint "192.168.164.201:6443" --upload-certs
 
-mkdir -p $HOME/.kube 
+mkdir -p $HOME/.kube
 
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config 
 
@@ -171,9 +173,8 @@ kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/
 ```sh
 sudo kubeadm join 192.168.1.111:6443 --token your_token --discovery-token-ca-cert-hash your_sha --control-plane --certificate-key your_cert
 
-mkdir -p $HOME/.kube 
+mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config 
-
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 ### Chỉ định 3 node đều là Master và đồng thời là Worker (chạy trên k8s-master-1)

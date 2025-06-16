@@ -27,6 +27,12 @@ docker -v && docker-compose -v
 ```
 
 ### File `docker-compose.yml` tạo Rancher
+
+```sh
+mkdir /data/rancher/
+cd /data/rancher/
+```
+
 ```yaml
 version: '3'
 services:
@@ -40,6 +46,11 @@ services:
     volumes:
       - /data/rancher/data:/var/lib/rancher
     privileged: true
+```
+
+```sh
+nano docker-compose.yml
+docker-compose up -d
 ```
 
 ### Lấy mật khẩu Rancher
@@ -106,7 +117,7 @@ nano /etc/nginx/sites-available/default
 
 ### Thêm config `<name>.vn.conf`
 ```bash
-nano /etc/nginx/conf.d/<name>.vn.conf
+nano /etc/nginx/conf.d/quanda.vn.conf
 ```
 
 ```nginx
