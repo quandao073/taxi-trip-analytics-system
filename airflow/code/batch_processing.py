@@ -55,10 +55,8 @@ df = df.withColumn("hour_label", format_string("%02d:00", col("hour"))) \
                                        .otherwise("Other")
                   ) \
        .withColumn("trip_distance_km", round(col("trip_distance") * 1.60934, 2)) \
-       .withColumn("trip_distance_mile", col("trip_distance")) \
        .withColumn("trip_duration_minutes",
                       round((unix_timestamp("tpep_dropoff_datetime") - unix_timestamp("tpep_pickup_datetime")) / 60, 2)) \
-       .withColumn("trip_speed_mph", round((col("trip_distance") / (col("trip_duration_minutes") / 60)), 2)) \
        .withColumn("trip_speed_kph", round(col("trip_speed_mph") * 1.60934, 2)) \
        .withColumn("day_of_week", date_format(col("tpep_pickup_datetime"), "EEEE")) \
        .withColumn("month_label", date_format(col("tpep_pickup_datetime"), "MM/yyyy"))

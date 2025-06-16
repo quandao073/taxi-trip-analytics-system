@@ -54,13 +54,6 @@ export default function Header() {
                     </NavLink>
 
                 </nav>
-
-                <div className="header__actions">
-                    <button className="header__icon-button" title="Tìm kiếm">
-                        <Search size={24} />
-                    </button>
-                    <button className="header__signin-button">Sign in</button>
-                </div>
             </div>
         </header>
     );

@@ -15,7 +15,7 @@ mount -a
 sudo df -h
 ```
 
-### Cài đặt Docker
+### Cài đặt Docker và Docker-compose
 ```bash
 apt update
 
@@ -31,8 +31,10 @@ docker -v && docker-compose -v
 ```sh
 mkdir /data/rancher/
 cd /data/rancher/
-```
 
+nano docker-compose.yml
+```
+---
 ```yaml
 version: '3'
 services:
@@ -49,7 +51,6 @@ services:
 ```
 
 ```sh
-nano docker-compose.yml
 docker-compose up -d
 ```
 
@@ -61,6 +62,9 @@ docker logs rancher-server 2>&1 | grep "Bootstrap Password:"
 ---
 
 # Phần 2 và 3 thực hiện trên k8s-master-1, user root
+```bash
+sudo -i
+```
 ## 2. Cài đặt Helm
 ```bash
 wget https://get.helm.sh/helm-v3.17.3-linux-amd64.tar.gz
@@ -86,11 +90,12 @@ tar -xzf ingress-nginx-4.12.x.tgz
 
 nano ingress-nginx/values.yaml
 ```
-
+---
 > **Chính sửa trong `values.yaml`:**
 > - `type: LoadBalancer` → `type: NodePort`
 > - `nodePort.http: ""` → `http: "30080"`
 > - `nodePort.https: ""` → `https: "30443"`
+---
 
 ```bash
 cp -rf ingress-nginx /home/anhquan
@@ -152,20 +157,36 @@ systemctl restart nginx
 ## 5. Cài đặt và cấu hình NFS Server 
 ### Thực hiện trên nfs-server
 ```sh
+# Cài đặt nfs-server
 sudo apt install nfs-server -y
 
-sudo mkdir /data
+# Mount thư mục /A với ổ đĩa sdb và thư mục /B với ổ đĩa sdc
+sudo mkdir /A
+sudo mkdir /B
 
-sudo chown -R nobody:nogroup /data
+sudo mkfs.ext4 -m 0 /dev/sdb
+echo "/dev/sdb  /A  ext4  defaults  0  0" | sudo tee -a /etc/fstab
 
-sudo chmod -R 777 /data
+sudo mkfs.ext4 -m 0 /dev/sdc
+echo "/dev/sdc  /B  ext4  defaults  0  0" | sudo tee -a /etc/fstab
+
+mount -a
+sudo df -h
+
+# Thực hiện export các thư mục /A, /B ra bên ngoài
+sudo chown -R nobody:nogroup /A
+sudo chmod -R 777 /A
+
+sudo chown -R nobody:nogroup /B
+sudo chmod -R 777 /B
 
 sudo nano /etc/exports
+# Thêm các dòng sau
+/A *(rw,sync,no_subtree_check,no_root_squash)
+/B *(rw,sync,no_subtree_check,no_root_squash)
 
-/data *(rw,sync,no_subtree_check,no_root_squash)
-
+# Áp dụng và khởi động lại nfs-server
 sudo exportfs -rav
-
 sudo systemctl restart nfs-server
 ```
 
@@ -187,7 +208,7 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm install quanda prometheus-community/kube-prometheus-stack --namespace monitoring --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.accessModes[0]=ReadWriteOnce --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=10Gi --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=nfs-storage
 ```
 
-Thêm các ingress để truy cập được vào giao diện của Prometheus và Grafana
+Thêm các ingress để truy cập được vào giao diện của [Prometheus](../prometheus/prometheus-ingress.yaml) và [Grafana](../prometheus/grafana-ingress.yaml)
 
 ---
 
@@ -236,3 +257,14 @@ velero install \
   --namespace velero
 ```
 
+### Ví dụ thực hiện Backup namespace `bigdata`
+```bash
+# Tạo bản backup vơi tên `k8s-bigdata-v1`
+velero backup create k8s-bidata-v1 --include-namespaces bigdata --snapshot-volumes=false
+
+# xem danh sách các bản backup
+velero backup get
+
+# Thực hiện khôi phục dựa trên bản backup cụ thể
+velero restore create k8s-bidata-v1 --from-backup k8s-bidata-v1 --include-namespaces bigdata
+```
