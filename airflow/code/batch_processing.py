@@ -62,8 +62,8 @@ df = df.withColumn("hour_label", format_string("%02d:00", col("hour"))) \
        .withColumn("month_label", date_format(col("tpep_pickup_datetime"), "MM/yyyy"))
 
 # Loại bỏ dữ liệu bất thường
-df_processed = df.filter((col("trip_speed_mph") > 1) & (col("trip_speed_mph") < 70)) \
-                 .filter(col("trip_distance") <= 100)
+df_processed = df.filter((col("trip_speed_kph") > 5) & (col("trip_speed_kph") < 120)) \
+                 .filter(col("trip_distance_km") <= 160)
 
 df_processed.printSchema()
 
