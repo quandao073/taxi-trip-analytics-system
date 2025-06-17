@@ -195,6 +195,8 @@ sudo apt install nfs-common -y
 
 ## 6. Install Prometheus and Grafana
 ### Install Prometheus (on k8s-master-1)
+
+Add PV for Prometheus via Rancher UI: [monitoring-pv.yaml](../prometheus/monitoring-pv.yaml)
 ```sh
 kubectl create ns monitoring
 

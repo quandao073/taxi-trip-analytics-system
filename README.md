@@ -45,6 +45,9 @@ helm repo add bitnami https://charts.bitnami.com/bitnami
 ```
 
 __3.2. Install Airflow:__
+
+Add PV/PVC for Airflow via Rancher UI: [airflow-pv-pvc.yaml](./k8s/airflow/airflow-pv-pvc.yaml)
+
 ```bash
 # Add storage class for Airflow
 helm install nfs-airflow-storage nfs-subdir-external-provisioner/nfs-subdir-external-provisioner \
