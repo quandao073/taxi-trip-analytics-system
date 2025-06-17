@@ -1,46 +1,45 @@
-# Hướng Dẫn Cài Đặt Cụm Kubernetes (K8s)
+# Kubernetes (K8s) Cluster Installation Guide
 
-## Lưu ý
-### Cần kiểm tra dải địa chỉ IP hợp lệ và Gateway IP trước khi thiết lập địa chỉ IP cho các server để đảm bảo kết nối được với Internet
+## Important Notes
+Verify valid IP address ranges and Gateway IP before configuring server IPs to ensure internet connectivity.
 
-### Trên VMware Workstation, chọn Edit -> Virtual Network Editor
-
+### In VMware Workstation: Edit → Virtual Network Editor
 ![VMware Workstation](./installation_1.png)
 
-### Lựa chọn loại mạng NAT, chọn DHCP Settings. Khi đó dải địa chỉ hợp lệ sẽ hiện ra
+### Select NAT network type → DHCP Settings. Valid IP ranges will be displayed
 ![Virtual Network Editor](./installation_2.png)
 
 ![DHCP Settings](./installation_3.png)
 
-### Kiểm tra Gateway IP: Chọn NAT Settings -> Xuất hiện các thông tin về SubnetIP, Subnet mask và GatewayIP
+### Check Gateway IP: NAT Settings → Shows Subnet IP, Subnet mask, and Gateway IP
 ![DHCP Settings](./installation_4.png)
 
-## 1. Chuẩn Bị Hệ Thống
+## 1. System Preparation
 
-### Các thông số của từng node
+### Node Specifications
 
-| Hostname      | OS            | IP              | RAM  | CPU |
-|--------------|--------------|----------------|----------------|----------------|
-| k8s-master-1 | Ubuntu 22.04 | 192.168.164.201  | 8 GB             | 2              |
-| k8s-master-2 | Ubuntu 22.04 | 192.168.164.202  | 8 GB             | 2              |
-| k8s-master-3 | Ubuntu 22.04 | 192.168.164.203  | 8 GB             | 2              |
+| Hostname      | OS            | IP              | RAM  | CPU Cores |
+|--------------|--------------|----------------|------|-----|
+| k8s-master-1 | Ubuntu 22.04 | 192.168.164.201 | 12 GB | 8   |
+| k8s-master-2 | Ubuntu 22.04 | 192.168.164.202 | 12 GB | 8   |
+| k8s-master-3 | Ubuntu 22.04 | 192.168.164.203 | 12 GB | 8   |
 
-## 2. Thực hiện các bước sau trên cả 3 server
-Thêm hosts
+## 2. Execute on All 3 Servers
+Add hosts:
 ```sh
-sudo nano /etc/hosts/
+sudo nano /etc/hosts
 ```
-Nội dung cấu hình
+Configuration content:
 ```sh
 192.168.164.201 k8s-master-1
 192.168.164.202 k8s-master-2
 192.168.164.203 k8s-master-3
 ```
-Cập nhật và nâng cấp hệ thống
+Update and upgrade system:
 ```sh
 sudo apt update -y && sudo apt upgrade -y
 ```
-Tạo user *anhquan* và chuyển sang user *anhquan*
+Create user *anhquan* and switch to it:
 ```sh
 adduser anhquan
 
@@ -50,21 +49,21 @@ su anhquan
 
 cd /home/anhquan
 ```
-Tắt swap
+Disable swap:
 ```sh
 sudo swapoff -a
 
 sudo sed -i '/swap.img/s/^/#/' /etc/fstab
 ```
-Cấu hình module kernel
+Configure kernel modules:
 
 ```sh
 sudo nano /etc/modules-load.d/containerd.conf
-
+# Add these lines:
 overlay
 br_netfilter
 ```
-Tải module kernel
+Load kernel modules:
 
 ```sh
 sudo modprobe overlay
@@ -72,7 +71,7 @@ sudo modprobe overlay
 sudo modprobe br_netfilter
 ```
 
-Cấu hình hệ thống mạng
+Configure network settings:
 ```sh
 cat <<EOF | sudo tee /etc/sysctl.d/k8kubernetes.conf
 net.bridge.bridge-nf-call-iptables  = 1
@@ -81,11 +80,11 @@ net.ipv4.ip_forward                 = 1
 EOF
 ```
 
-Áp dụng thay đổi mà không cần khởi động lại:
+Apply changes without reboot:
 ```sh
 sudo sysctl --system
 ```
-Cài đặt các gói cần thiết và thêm kho Docker
+Install dependencies and add Docker repository:
 ```sh
 sudo apt install -y curl gnupg2 software-properties-common apt-transport-https ca-certificates
 
@@ -93,20 +92,20 @@ sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmo
 
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 ```
-Cài đặt containerd
+Install *containerd*:
 ```sh
 sudo apt update -y
 
 sudo apt install -y containerd.io
 ```
 
-Cấu hình containerd
+Configure *containerd*:
 ```sh
 containerd config default | sudo tee /etc/containerd/config.toml >/dev/null 2>&1
 
 sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
 ```
-Khởi động containerd
+Start *containerd*:
 
 ```sh
 sudo systemctl restart containerd
@@ -116,13 +115,13 @@ sudo systemctl enable containerd
 sudo systemctl status containerd
 ```
 
-Thêm kho lưu trữ Kubernetes
+Add Kubernetes repository:
 ```sh
 echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
 curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 ```
-Cài đặt các gói Kubernetes
+Install Kubernetes packages:
 ```sh
 sudo apt update -y
 
@@ -131,8 +130,8 @@ sudo apt install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 ```
 
-## 3. Triển khai mô hình gồm 1 master và 2 worker
-### Thực hiện trên k8s-master-node
+## 3. Deploy 1 Master + 2 Workers Model
+### On k8s-master-node:
 ```sh
 sudo kubeadm init
 mkdir -p $HOME/.kube
@@ -140,12 +139,12 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
 ```
-### Thực hiện trên k8s-worker-node-1 và k8s-worker-node-2
+### On worker nodes (k8s-worker-node-1 and k8s-worker-node-2):
 ```sh
 sudo kubeadm join 192.168.1.111:6443 --token your_token --discovery-token-ca-cert-hash your_sha
 ```
 
-## Lệnh xóa cụm k8s nếu muốn cài đặt lại
+## Cluster Reset Command (For Reinstallation)
 ```sh
 sudo kubeadm reset -f
 sudo rm -rf /var/lib/etcd
@@ -155,8 +154,8 @@ sudo rm -rf /etc/kubernetes /var/lib/kubelet /var/lib/etcd /var/lib/cni /etc/cni
 sudo systemctl restart kubelet
 
 ```
-## 4. Triển khai mô hình gồm 3 master
-### Thực hiện trên k8s-master-1
+## 4. Deploy 3-Master HA Model
+### On k8s-master-1:
 ```sh
 sudo kubeadm init --control-plane-endpoint "192.168.164.201:6443" --upload-certs
 
@@ -169,7 +168,7 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.25.0/manifests/calico.yaml
 ```
 
-### Thực hiện trên server k8s-master-2 và k8s-master-3
+### On k8s-master-2 and k8s-master-3:
 ```sh
 sudo kubeadm join 192.168.1.111:6443 --token your_token --discovery-token-ca-cert-hash your_sha --control-plane --certificate-key your_cert
 
@@ -177,7 +176,7 @@ mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config 
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
-### Chỉ định 3 node đều là Master và đồng thời là Worker (chạy trên k8s-master-1)
+### Configure All Nodes as Schedulable (Run on k8s-master-1)
 ```sh
 kubectl taint nodes k8s-master-1 node-role.kubernetes.io/control-plane:NoSchedule-
 

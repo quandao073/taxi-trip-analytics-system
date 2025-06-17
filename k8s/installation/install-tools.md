@@ -1,21 +1,17 @@
-# Hướng dẫn cài đặt các công cụ khác
+# Additional Tools Installation Guide
 
-## 1. Cài đặt Rancher (trên 1 server riêng)
+## 1. Install Rancher (on a dedicated server)
 
-### Gán disk (ổ cứng) vào trong thư mục `/data`
+### Mount disk to `/data` directory
 ```bash
 sudo mkfs.ext4 -m 0 /dev/sdb
-
-mkdir /data
-
+sudo mkdir /data
 echo "/dev/sdb  /data  ext4  defaults  0  0" | sudo tee -a /etc/fstab
-
-mount -a
-
+sudo mount -a
 sudo df -h
 ```
 
-### Cài đặt Docker và Docker-compose
+### Install Docker and Docker-compose
 ```bash
 apt update
 
@@ -26,12 +22,11 @@ apt install docker-compose
 docker -v && docker-compose -v
 ```
 
-### File `docker-compose.yml` tạo Rancher
-
+### Create Rancher using `docker-compose.yml`
 ```sh
 mkdir /data/rancher/
-cd /data/rancher/
 
+cd /data/rancher/
 nano docker-compose.yml
 ```
 ---
@@ -54,18 +49,18 @@ services:
 docker-compose up -d
 ```
 
-### Lấy mật khẩu Rancher
+### Retrieve Rancher bootstrap password
 ```bash
 docker logs rancher-server 2>&1 | grep "Bootstrap Password:"
 ```
 
 ---
 
-# Phần 2 và 3 thực hiện trên k8s-master-1, user root
+# Execute Part 2 and 3 on k8s-master-1 as root
 ```bash
 sudo -i
 ```
-## 2. Cài đặt Helm
+## 2. Install Helm
 ```bash
 wget https://get.helm.sh/helm-v3.17.3-linux-amd64.tar.gz
 
@@ -78,7 +73,7 @@ helm version
 
 ---
 
-## 3. Cài đặt Ingress Controller
+## 3. Install Ingress Controller
 ```bash
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 
@@ -91,7 +86,7 @@ tar -xzf ingress-nginx-4.12.x.tgz
 nano ingress-nginx/values.yaml
 ```
 ---
-> **Chính sửa trong `values.yaml`:**
+> **Modify in `values.yaml`:**
 > - `type: LoadBalancer` → `type: NodePort`
 > - `nodePort.http: ""` → `http: "30080"`
 > - `nodePort.https: ""` → `https: "30443"`
@@ -109,18 +104,18 @@ helm -n ingress-nginx install ingress-nginx -f ingress-nginx/values.yaml ingress
 
 ---
 
-## 4. Cấu hình NGINX server Load Balancer
-### Cài đặt nginx
+## 4. Configure NGINX Load Balancer
+### Install nginx
 ```sh
 sudo apt install nginx -y
 ```
-### Cập nhật port trong nginx default
+### Update default port configuration
 ```bash
 nano /etc/nginx/sites-available/default
 ```
 > Sửa `listen 80` → `listen 9999;`
 
-### Thêm config `<name>.vn.conf`
+### Add custom configuration
 ```bash
 nano /etc/nginx/conf.d/quanda.vn.conf
 ```
@@ -154,13 +149,13 @@ systemctl restart nginx
 ---
 
 
-## 5. Cài đặt và cấu hình NFS Server 
-### Thực hiện trên nfs-server
+## 5. Install and Configure NFS Server
+### On nfs-server
 ```sh
-# Cài đặt nfs-server
+# Install NFS server
 sudo apt install nfs-server -y
 
-# Mount thư mục /A với ổ đĩa sdb và thư mục /B với ổ đĩa sdc
+# Create and mount directories
 sudo mkdir /A
 sudo mkdir /B
 
@@ -173,33 +168,33 @@ echo "/dev/sdc  /B  ext4  defaults  0  0" | sudo tee -a /etc/fstab
 mount -a
 sudo df -h
 
-# Thực hiện export các thư mục /A, /B ra bên ngoài
+# Configure permissions
 sudo chown -R nobody:nogroup /A
 sudo chmod -R 777 /A
 
 sudo chown -R nobody:nogroup /B
 sudo chmod -R 777 /B
 
+# Configure exports
 sudo nano /etc/exports
-# Thêm các dòng sau
+
 /A *(rw,sync,no_subtree_check,no_root_squash)
 /B *(rw,sync,no_subtree_check,no_root_squash)
 
-# Áp dụng và khởi động lại nfs-server
+# Apply configuration
 sudo exportfs -rav
 sudo systemctl restart nfs-server
 ```
 
-### Cài đặt và cấu hình NFS client (Thực hiện trên cả 3 servers k8s-master-1, k8s-master-2, k8s-master-3)
+### Install NFS client (on all k8s master nodes)
 ```sh
 sudo apt install nfs-common -y
 ```
 
 ---
 
-## 6. Cài đặt Prometheus và Grafana
-### Cài đặt Prometheus
-Thực hiện trên k8s-master-1
+## 6. Install Prometheus and Grafana
+### Install Prometheus (on k8s-master-1)
 ```sh
 kubectl create ns monitoring
 
@@ -208,13 +203,14 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm install quanda prometheus-community/kube-prometheus-stack --namespace monitoring --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.accessModes[0]=ReadWriteOnce --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.resources.requests.storage=10Gi --set prometheus.prometheusSpec.storageSpec.volumeClaimTemplate.spec.storageClassName=nfs-storage
 ```
 
-Thêm các ingress để truy cập được vào giao diện của [Prometheus](../prometheus/prometheus-ingress.yaml) và [Grafana](../prometheus/grafana-ingress.yaml)
+Add Ingress configurations for [Prometheus](../prometheus/prometheus-ingress.yaml) and [Grafana](../prometheus/grafana-ingress.yaml)
+access
 
 ---
 
-## 7. Backup hệ thống với Velero
+## 7. System Backup with Velero
 
-### Docker Compose MinIO (trên `nfs-server`)
+### Docker Compose MinIO (on `nfs-server`)
 ```yml
 version: '3'
 services:
@@ -232,14 +228,14 @@ services:
     command: server --console-address ":9001" /data
 ```
 
-### Cài Velero client (trên k8s-master hoặc kubectl shell trong Rancher)
+### Install Velero client (on k8s-master or Rancher kubectl shell)
 ```bash
 wget https://github.com/vmware-tanzu/velero/releases/download/v1.16.1/velero-v1.16.1-linux-amd64.tar.gz
 tar -xvf velero-v1.16.1-linux-amd64.tar.gz
 sudo mv velero-v1.16.1-linux-amd64/velero /usr/local/bin
 ```
 
-### Cài Velero sử dụng MinIO
+### Install Velero using MinIO
 ```bash
 cat <<EOF > credentials-velero
 [default]
@@ -257,14 +253,14 @@ velero install \
   --namespace velero
 ```
 
-### Ví dụ thực hiện Backup namespace `bigdata`
+### Example: Backup `bigdata` namespace
 ```bash
-# Tạo bản backup vơi tên `k8s-bigdata-v1`
-velero backup create k8s-bidata-v1 --include-namespaces bigdata --snapshot-volumes=false
+# Create backup named `k8s-bigdata-v1`
+velero backup create k8s-bigdata-v1 --include-namespaces bigdata --snapshot-volumes=false
 
-# xem danh sách các bản backup
+# List all backups
 velero backup get
 
-# Thực hiện khôi phục dựa trên bản backup cụ thể
-velero restore create k8s-bidata-v1 --from-backup k8s-bidata-v1 --include-namespaces bigdata
+# Restore from specific backup
+velero restore create k8s-bigdata-v1 --from-backup k8s-bigdata-v1 --include-namespaces bigdata
 ```
