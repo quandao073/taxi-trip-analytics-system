@@ -166,6 +166,8 @@ __3.10. Install WebServer (via Rancher UI)__
 ## Deployment Results and Experimentation
 
 ### Kubernetes Deployment
+![Deploy Environment](./images/deploy_environment.png)
+
 ![Pods](./images/4_k8s_pods.png)
 
 ![Deployments](./images/4_k8s_deployments.png)
