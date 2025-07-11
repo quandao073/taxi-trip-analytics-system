@@ -9,7 +9,7 @@ primary:
   persistence:
     enabled: true
     existingClaim: postgres-db-pvc
-    size: 20Gi
+    size: 30Gi
     storageClass: nfs-storage
   
   resources:

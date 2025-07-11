@@ -120,16 +120,12 @@ helm install redis bitnami/redis --values values.yaml --namespace bigdata
 
 helm uninstall redis --namespace bigdata
 
--- move to web backend shell
-	apk update
-	apk add redis
-	redis-cli -h redis-sentinel.bigdata.svc.cluster.local -p 26379 -a quanda
-	SENTINEL get-master-addr-by-name mymaster
-	exit
-	redis-cli -h redis-sentinel-node-0.redis-sentinel-headless.bigdata.svc.cluster.local -p 6379 -a quanda
+redis-cli -a quanda
 
+SUBSCRIBE realtime-trip-channel
 	
 SET total_trips 12345
+TTL total_trips
 
 ----------------------------------------------------------------------------------------------------------------------------------
 4. Spark Cluster
@@ -192,3 +188,21 @@ helm install nfs-superset-storage nfs-subdir-external-provisioner/nfs-subdir-ext
 kubeadm join 192.168.164.201:6443 --token v67jwx.wq9o3sifneya0fed \
         --discovery-token-ca-cert-hash sha256:ee2b784c93b1561b10ddbe813ba212fa55cf931054868f741677f5556563ae09
 
+
+----------------------------------------------------------------------------------------------------------------------------------
+--- Velero ---
+
+velero backup create k8s-bidata-v1 --include-namespaces bigdata --snapshot-volumes=false
+velero restore create quanda-k8s-v1 --from-backup quanda-k8s-v1 --include-namespaces bigdata
+
+velero backup delete k8s-bidata-v1
+velero backup create all-cluster-v1 --include-namespaces '*' --snapshot-volumes=false
+
+velero schedule create daily-cluster-backup --schedule="0 0 * * *" --include-namespaces '*'
+velero schedule get
+
+- Slide em không thay đổi nhiều so với lần trước, em sẽ thay đổi cách mình trình bày.
+- Tên đề tài của em nghe có vẻ rất rộng, vì vậy khi trình bày phần giới thiệu em sẽ giới hạn luôn lại phạm vi: "Trong phạm vi thử nghiệm với dữ liệu các chuyến taxi..., em đưa ra giải pháp.." để tập trung vào bài toán taxi. Ý tưởng của em là hệ thống có khả năng linh hoạt trong việc thay đổi mã nguồn hay triển khai các công nghệ khác nhau, việc nói chung chung là "hệ thống ... dữ liệu lớn" dễ gây hiểu nhầm, có thể sẽ bị hỏi khó phần này
+- Theo nhận xét của thầy Đức, em cần phải tập trung vào giải quyết bài toán thay vì triển khai như thế nào. Vì vậy em sẽ trình bày chi tiết toàn bộ những việc mình làm trong phần 2, với bộ dữ liệu thử nghiệm, và phần kết quả thực nghiệm sẽ bổ sung thêm 1 chút. Phần triển khai chỉ trình bày cấu trúc và cách triển khai, lướt nhanh qua các hình ảnh kết quả.
+- Slide của em khá dài (40 trang) nhưng chủ yếu là hình ảnh kết quả, em sẽ lướt nhanh những phần này. Em dự định trình bày trong khoảng 11-12 phút.
+- Nếu bị hỏi case study của em là về big data thì em đang chưa biết cách xử lý, vì em cũng chưa được tiếp xúc với "big data" thực sự bao giờ, và dữ liệu em kiếm được là dữ liệu em thấy có dung lượng lớn nhất rồi. Nhưng với đồ án này, thì em nghĩ mình sẽ nói về các công cụ có khả năng mở rộng tốt, tăng khả năng tính toán vô hạn miễn là có đủ tài nguyên.

@@ -18,18 +18,18 @@ def get_or_create_time_var():
     try:
         time_str = Variable.get("batch_processing_time")
         time_dict = json.loads(time_str)
-        time_dict.setdefault("year", 2023)
+        time_dict.setdefault("year", 2019)
         time_dict.setdefault("month", 1)
         return time_dict
     except KeyError:
-        initial_time = {"year": 2023, "month": 1}
+        initial_time = {"year": 2019, "month": 1}
         Variable.set("batch_processing_time", json.dumps(initial_time))
         return initial_time
 
 @dag(
     default_args=default_args,
     schedule_interval=None,
-    start_date=datetime(2023, 1, 1),
+    start_date=datetime(2019, 1, 1),
     catchup=False,
     tags=["monthly_batch_processing"]
 )
@@ -48,10 +48,6 @@ def batch_processing_dag():
     def increase_time_var():
         current_time = get_or_create_time_var()
         dt = datetime(current_time["year"], current_time["month"], 1) + relativedelta(months=1)
-
-        if dt.year > 2023:
-            raise ValueError("📅 Reached end of 2023. Stop here.")
-
         updated = {"year": dt.year, "month": dt.month}
         Variable.set("batch_processing_time", json.dumps(updated))
         print(f"✅ Updated batch processing time to: {updated}")

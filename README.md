@@ -42,6 +42,9 @@ helm repo add apache-airflow https://airflow.apache.org
 helm repo add pfisterer-hadoop https://pfisterer.github.io/apache-hadoop-helm/
 
 helm repo add bitnami https://charts.bitnami.com/bitnami
+
+helm repo add nfs-subdir-external-provisioner https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/
+
 ```
 
 __3.2. Install Airflow:__
@@ -55,7 +58,7 @@ helm install nfs-airflow-storage nfs-subdir-external-provisioner/nfs-subdir-exte
   --set nfs.server=192.168.164.206 \
   --set nfs.path=/A/airflow \
   --set storageClass.name=nfs-airflow-storage \
-  --set storageClass.defaultClass=false \
+  --set storageClass.defaultClass=true \
   --set storageClass.accessModes={ReadWriteMany} \
   --set storageClass.reclaimPolicy=Retain
 
@@ -214,4 +217,4 @@ __Data Visualization__
 ![Web Routes Analytics](./images/4_3_web_routes.png)
 ---
 
-### Project details are presented in the [Final Report]()
+### Project details are presented in the [Final Report](./report/report.pdf)

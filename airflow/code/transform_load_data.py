@@ -127,6 +127,9 @@ def write_to_redis(batch_df, batch_id):
             new_total = current_total + batch_trip_count
             redis_conn.set(total_trips_key, new_total)
 
+            if redis_conn.ttl(total_trips_key) == -1:
+                redis_conn.expire(total_trips_key, 86400)
+            
             # Dự đoán số chuyến đi phát sinh trong 1 giờ tới
             future_time = current_pickup_time + timedelta(hours=1)
             predict_input = spark.createDataFrame([{
